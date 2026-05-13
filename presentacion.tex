@@ -1,0 +1,652 @@
+\documentclass[aspectratio=169, xcolor={dvipsnames}]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{tikz}
+\usetikzlibrary{arrows, positioning, shapes}
+\usepackage{tcolorbox}
+\usepackage{listings}
+\lstdefinestyle{pythonstyle}{
+  language=Python,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{MidnightBlue},
+  commentstyle=\color{ForestGreen},
+  stringstyle=\color{BrickRed},
+  numbers=left,
+  numberstyle=\tiny,
+  frame=single,
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=2,
+  backgroundcolor=\color{gray!5},
+  extendedchars=true,
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+           {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+           {ñ}{{\~n}}1 {Ñ}{{\~N}}1 {ü}{{\"u}}1 {Ü}{{\"U}}1
+           {º}{{\textdegree}}1 {ª}{{\textordfeminine}}1
+           {¿}{{?`}}1 {¡}{{!`}}1,
+}
+\lstnewenvironment{pycode}[1][]
+  {\lstset{style=pythonstyle,#1}}
+  {}
+
+\usetheme{Madrid}
+\usecolortheme{whale}
+
+\title[Optimización App de Citas]{Comparación de 3 Optimizadores\\Modelo Depredador-Presa (Lotka-Volterra)}
+\subtitle{Aplicado a la optimización de una app de citas}
+\author{Emmanuel Guerrero Piza -- 20202020039 \\[0.2cm] Kevin Andrés Forero Guaitero -- 20181020120}
+\institute{UNIVERSIDAD DISTRITAL}
+\date{\today}
+
+\setbeamertemplate{enumerate items}[circle]
+\setbeamertemplate{itemize items}[circle]
+
+\title[Optimización App de Citas]{Comparación de 3 Optimizadores\\Modelo Depredador-Presa (Lotka-Volterra)}
+\subtitle{Aplicado a la optimización de una app de citas}
+\author[Guerrero \& Forero]{Emmanuel Guerrero Piza -- 20202020039 \\[0.2cm] Kevin Andrés Forero Guaitero -- 20181020120}
+\institute{UNIVERSIDAD DISTRITAL}
+\date{\today}
+
+\makeatletter
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.25\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \usebeamerfont{author in head/foot}Guerrero \& Forero
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.5\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+    \usebeamerfont{title in head/foot}\insertshorttitle
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.25\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%
+    \usebeamerfont{date in head/foot}\insertshortdate{}\hspace*{2em}\insertframenumber{}/\inserttotalframenumber\hspace*{2ex}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+\makeatother
+
+\newcommand{\parambox}[4]{%
+  \begin{minipage}{0.22\textwidth}
+    \centering
+    \begin{tikzpicture}
+      \node[draw, rounded corners, fill=#4!20, minimum width=2.8cm, minimum height=1.5cm, align=center] {
+        \textbf{\textcolor{#4}{#1}}\\[0.1cm] #2\\[-0.05cm] \textit{#3}
+      };
+    \end{tikzpicture}
+  \end{minipage}
+}
+
+\begin{document}
+
+% ---- PORTADA ----
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ---- INDICE ----
+\begin{frame}{Contenido}
+  \tableofcontents
+\end{frame}
+
+% ======================================================================
+\section{Definición del problema}
+% ======================================================================
+
+\begin{frame}{Modelo Lotka-Volterra para App de Citas}
+  \centering
+  \includegraphics[width=0.75\textwidth]{modelo_ecs.png}
+
+  \vspace{0.3cm}
+  \small
+  El sistema modela la interacción entre perfiles disponibles ($x$) y usuarios
+  activos ($y$). El objetivo es encontrar parámetros que maximicen la rentabilidad
+  manteniendo un equilibrio estable.
+\end{frame}
+
+\definecolor{colALPHA}{HTML}{3498db}
+\definecolor{colBETA}{HTML}{e67e22}
+\definecolor{colDELTA}{HTML}{2ecc71}
+\definecolor{colGAMMA}{HTML}{e74c3c}
+
+\begin{frame}{Parámetros del sistema}
+  \centering
+  \vspace{-0.3cm}
+  \begin{tikzpicture}[scale=0.7]
+    \node[draw, rounded corners, fill=colALPHA!15, minimum width=3.8cm, minimum height=1.8cm, align=center] (a) {
+      \textbf{\textcolor{colALPHA}{$a$ (alpha)}} \\[0.1cm]
+      \small Crecimiento de perfiles \\[0.05cm]
+      \tiny Nuevos registros en la plataforma
+    };
+    \node[draw, rounded corners, fill=colBETA!15, minimum width=3.8cm, minimum height=1.8cm, align=center, below=0.4cm of a] (b) {
+      \textbf{\textcolor{colBETA}{$b$ (beta)}} \\[0.1cm]
+      \small Tasa de match \\[0.05cm]
+      \tiny Interacción entre usuarios
+    };
+    \node[draw, rounded corners, fill=colDELTA!15, minimum width=3.8cm, minimum height=1.8cm, align=center, right=0.3cm of a] (c) {
+      \textbf{\textcolor{colDELTA}{$c$ (delta)}} \\[0.1cm]
+      \small Eficiencia algoritmo \\[0.05cm]
+      \tiny Qué tan bien empareja la app
+    };
+    \node[draw, rounded corners, fill=colGAMMA!15, minimum width=3.8cm, minimum height=1.8cm, align=center, right=0.3cm of b] (d) {
+      \textbf{\textcolor{colGAMMA}{$d$ (gamma)}} \\[0.1cm]
+      \small Abandono usuarios \\[0.05cm]
+      \tiny Tasa de deserción
+    };
+    \draw[->, thick, colALPHA] (a.south) -- node[midway, left] {\small \textcolor{colALPHA}{$+$}} (b.north);
+    \draw[->, thick, colDELTA] (c.south) -- node[midway, left] {\small \textcolor{colDELTA}{$+$}} (d.north);
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}[shrink]{Ecuaciones del modelo}
+  \centering
+  \begin{tikzpicture}
+    \node[draw, rounded corners, fill=gray!10, minimum width=6cm, minimum height=1.2cm, align=center] (eq1) {
+      \Large $\dot{x} = \textcolor{colALPHA}{a}\,x - \textcolor{colBETA}{b}\,x\,y$
+    };
+    \node[draw, rounded corners, fill=gray!10, minimum width=6cm, minimum height=1.2cm, align=center, below=0.3cm of eq1] (eq2) {
+      \Large $\dot{y} = \textcolor{colDELTA}{c}\,x\,y - \textcolor{colGAMMA}{d}\,y$
+    };
+    \node[below=0.3cm of eq2, align=center] (labels) {
+      \scriptsize
+      $\underbrace{x}_{\text{perfiles}}$ \quad
+      $\underbrace{y}_{\text{usuarios activos}}$
+    };
+  \end{tikzpicture}
+
+  \vspace{0.3cm}
+  \begin{block}{Punto de equilibrio}
+    \centering
+    \[
+    x^{*} = \frac{\textcolor{colGAMMA}{d}}{\textcolor{colDELTA}{c}}
+    \qquad\qquad
+    y^{*} = \frac{\textcolor{colALPHA}{a}}{\textcolor{colBETA}{b}}
+    \]
+    \small El sistema converge a $(x^{*}, y^{*})$ independientemente
+    de las condiciones iniciales.
+  \end{block}
+
+\end{frame}
+
+\begin{frame}[shrink]{Estado inicial (línea base)}
+  \textbf{Parámetros por defecto:}
+  \[
+  a = 0.3,\; b = 0.006,\; c = 0.018,\; d = 0.7
+  \]
+  \textbf{Condiciones iniciales:}
+  \[
+  x_0 = 40,\; y_0 = 50
+  \]
+  \textbf{Métricas base:}
+  \begin{itemize}
+    \item Costo: $-27.95$
+    \item CV: $0.059$ (estable)
+    \item Retención: $49.7\%$
+    \item Ganancia: \$62.49/mes
+  \end{itemize}
+
+  \vspace{0.0cm}
+  \begin{tcolorbox}[colback=gray!5, colframe=gray!40, sharp corners, boxrule=0.5pt]
+    \tiny
+    \texttt{\% Parámetros iniciales del sistema}\\
+    \texttt{T = 0.1           \# Tiempo de muestreo}\\
+    \texttt{X0, Y0 = 40, 50  \# Condiciones iniciales}\\[0.05cm]
+    \texttt{\% Límites de búsqueda del optimizador}\\
+    \texttt{ALPHA\_BOUNDS = (0.2, 1.0)}\\
+    \texttt{BETA\_BOUNDS  = (0.005, 0.04)}\\
+    \texttt{DELTA\_BOUNDS = (0.002, 0.04)}\\
+    \texttt{GAMMA\_BOUNDS = (0.1, 0.7)}
+  \end{tcolorbox}
+\end{frame}
+
+\begin{frame}{Diagrama de fase — Estado inicial}
+  \centering
+  \includegraphics[width=0.55\textwidth, height=0.75\textheight, keepaspectratio]{baseline_fase.png}
+\end{frame}
+
+\begin{frame}{Acrónimos — Optimizadores}
+  \centering
+  \begin{itemize}
+    \item[\textbf{DE}] \textbf{D}ifferential \textbf{E}volution
+      \newline \hspace{1.2em} Búsqueda evolutiva global con población de individuos
+    \bigskip
+    \item[\textbf{SGD}] \textbf{S}tochastic \textbf{G}radient \textbf{D}escent
+      \newline \hspace{1.2em} Gradiente descendente estocástico con momentum
+    \bigskip
+    \item[\textbf{ANFIS}] \textbf{A}daptive \textbf{N}euro-\textbf{F}uzzy
+      \newline \hspace{1.2em} \textbf{I}nference \textbf{S}ystem
+      \newline \hspace{1.2em} Sistema de inferencia neuro-difuso
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Notación — Métricas de evaluación}
+  \centering
+  \begin{itemize}
+    \item[\textbf{CV}] \textbf{C}oefficient of \textbf{V}ariation
+      \newline \hspace{1.2em} $\displaystyle CV = \frac{\sigma(y)}{\mu(y)}$ en estado estable
+      \newline \hspace{1.2em} Mide la estabilidad del sistema ($<0.3$ = estable)
+    \bigskip
+    \item[\boldmath{$x^{*}$}] Equilibrio de perfiles
+      \newline \hspace{1.2em} $\displaystyle x^{*} = \frac{d}{c}$
+    \bigskip
+    \item[\boldmath{$y^{*}$}] Equilibrio de usuarios
+      \newline \hspace{1.2em} $\displaystyle y^{*} = \frac{a}{b}$
+  \end{itemize}
+
+\end{frame}
+
+% ======================================================================
+\section{Optimizador 1: Differential Evolution}
+% ======================================================================
+
+\begin{frame}{DE — Differential Evolution}
+  \begin{columns}
+    \column{0.55\textwidth}
+    \textbf{Estrategia:}
+    \begin{itemize}
+      \item Búsqueda global evolutiva sin gradientes
+      \item Población de 50 individuos, 1500 generaciones
+      \item Refinamiento local con \texttt{L-BFGS-B}
+    \end{itemize}
+
+    \textbf{Parámetros óptimos:}
+    \[
+    a = 0.279,\; b = 0.005,\; c = 0.018,\; d = 0.700
+    \]
+    \[
+    x^{*} = 39.1,\; y^{*} = 55.7
+    \]
+
+    \textbf{Métricas:}
+    \begin{itemize}
+      \item Costo: $\mathbf{-27.95}$ (mejor)
+      \item CV: $0.103$ (estable)
+      \item Ganancia: $\mathbf{\$70.60}$/mes (mejor)
+      \item Tiempo: $13.0$s
+    \end{itemize}
+
+    \column{0.45\textwidth}
+    \centering
+    \begin{tikzpicture}[node distance=0.25cm]
+      \node[draw, fill=MidnightBlue!20, rounded corners, inner sep=6pt, align=center] (pop) {Población inicial aleatoria};
+      \node[draw, fill=MidnightBlue!40, rounded corners, inner sep=6pt, align=center, above=of pop] (mut) {Mutación / Cruce};
+      \node[draw, fill=MidnightBlue!60, rounded corners, inner sep=6pt, align=center, above=of mut] (sel) {Selección};
+      \node[draw, fill=MidnightBlue!80, rounded corners, inner sep=6pt, align=center, above=of sel, text=white] (conv) {¿Converge?};
+      \node[draw, fill=ForestGreen!60, rounded corners, inner sep=6pt, align=center, right=0.5cm of conv] (lbfgs) {L-BFGS-B};
+      \node[draw, fill=ForestGreen!80, rounded corners, inner sep=6pt, align=center, below=0.25cm of lbfgs, text=white] (opt) {Óptimo};
+      \draw[->, thick] (pop.north) -- (mut.south);
+      \draw[->, thick] (mut.north) -- (sel.south);
+      \draw[->, thick] (sel.north) -- (conv.south);
+      \draw[->, thick] (conv.east) -- (lbfgs.west);
+      \draw[->, thick] (lbfgs.south) -- (opt.north);
+    \end{tikzpicture}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile, shrink]{DE — Código: optimización global}
+  \textbf{\textcolor{MidnightBlue}{Núcleo del optimizador:}} búsqueda evolutiva con \texttt{differential\_evolution}
+  seguida de refinamiento local \texttt{L-BFGS-B}.
+
+  \begin{pycode}[basicstyle=\ttfamily\scriptsize, numbers=none]
+class DifferentialEvolutionOptimizer:
+    def optimize(self, n_steps=800, x0=X0, y0=Y0):
+        bounds = [ALPHA_BOUNDS, BETA_BOUNDS,
+                  DELTA_BOUNDS, GAMMA_BOUNDS]
+
+        # Fase 1: búsqueda global evolutiva
+        res = differential_evolution(
+            lambda p: cost_function(p, n_steps, x0, y0),
+            bounds,
+            strategy='best1bin',   # mutación diferencial
+            maxiter=1500,          # generaciones
+            popsize=50,            # individuos por generación
+            tol=1e-8, seed=42,
+        )
+
+        # Fase 2: refinamiento local
+        res2 = minimize(
+            lambda p: cost_function(p, n_steps, x0, y0),
+            res.x, bounds=bounds, method='L-BFGS-B')
+
+        xopt = res2.x if res2.fun < res.fun else res.x
+        self.a, self.b, self.c, self.d = xopt
+        self.x_sim, self.y_sim = simulate(*xopt, n_steps, x0, y0)
+        return self
+  \end{pycode}
+
+  \vspace{0.1cm}
+  {\footnotesize \texttt{differential\_evolution}} explora el espacio de búsqueda
+  de forma paralela con una población de 50 individuos.
+  \texttt{L-BFGS-B} refina la mejor solución encontrada.
+\end{frame}
+
+% ======================================================================
+\section{Optimizador 2: SGD}
+% ======================================================================
+
+\begin{frame}[shrink]{SGD — Stochastic Gradient Descent}
+  \footnotesize
+  \begin{columns}
+    \column{0.55\textwidth}
+    \textbf{Estrategia:}
+    \begin{itemize}
+      \item Gradiente aproximado por diferencias finitas
+      \item Momentum ($0.85$) + clipping de gradiente
+      \item Grid de $>50$ puntos de inicio + reinicios aleatorios
+      \item Learning rate con decaimiento ($\times 0.99$)
+    \end{itemize}
+
+    \textbf{Parámetros óptimos:}
+    \[
+    a = 0.300,\; b = 0.006,\; c = 0.018,\; d = 0.700
+    \]
+    \[
+    x^{*} = 38.9,\; y^{*} = 50.0
+    \]
+
+    \textbf{Métricas:}
+    \begin{itemize}
+      \item Costo: $-25.34$
+      \item CV: $\mathbf{0.041}$ (más estable)
+      \item Ganancia: \$61.72/mes
+      \item Tiempo: $19.9$s
+    \end{itemize}
+
+    \column{0.45\textwidth}
+    \centering
+    \begin{tikzpicture}[node distance=0.2cm]
+      \node[draw, fill=Plum!20, rounded corners, inner sep=5pt, align=center] (grid) {Grid de puntos iniciales};
+      \node[draw, fill=Plum!60, rounded corners, inner sep=5pt, align=center, below=of grid] (grad) {Gradiente + Momentum};
+      \node[draw, fill=Plum!80, rounded corners, inner sep=5pt, align=center, right=0.4cm of grad, text=white] (clip) {Clip};
+      \draw[->, thick] (grid.south) -- (grad.north);
+      \draw[->, thick] (grad.east) -- (clip.west);
+    \end{tikzpicture}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile, shrink]{SGD — Código: gradiente descendente}
+  \textbf{\textcolor{Plum}{Núcleo del optimizador:}} gradiente aproximado por diferencias finitas
+  con momentum y grid de reinicios.
+
+  \vspace{0.2cm}
+  \textbf{Gradiente por diferencias finitas:}
+  \begin{pycode}[basicstyle=\ttfamily\scriptsize, numbers=none]
+def _finite_grad(self, p, n_steps, x0, y0, eps=1e-4):
+    base = cost_function(p, n_steps, x0, y0)
+    grad = np.zeros(4)
+    for i in range(4):         # perturba cada parámetro
+        p_up = p.copy()
+        p_up[i] += eps
+        p_up = self._clip(p_up)
+        grad[i] = (cost_function(p_up, n_steps, x0, y0) - base) / eps
+    # clipping para evitar explosiones cerca de penalizaciones
+    norm = np.linalg.norm(grad)
+    if norm > 1000:
+        grad = grad / norm * 1000
+    return grad, base
+  \end{pycode}
+
+  \textbf{Bucle de descenso con momentum:}
+  \begin{pycode}[basicstyle=\ttfamily\scriptsize, numbers=none]
+def _restart_from(self, p0, n_steps, x0, y0, max_iter=150, lr=0.005):
+    p = p0.copy();  v = np.zeros(4)      # momentum inicial
+    best_p = p.copy()
+    best_c = cost_function(p, n_steps, x0, y0)
+    for step in range(max_iter):
+        grad, _ = self._finite_grad(p, n_steps, x0, y0)
+        v = 0.85 * v + lr * grad         # momentum
+        p = self._clip(p - v)            # actualización
+        lr *= 0.99                       # decaimiento
+        ...
+  \end{pycode}
+\end{frame}
+
+% ======================================================================
+\section{Optimizador 3: ANFIS}
+% ======================================================================
+
+\begin{frame}[shrink]{ANFIS — Neuro-Fuzzy Optimizer}
+  \footnotesize
+  \begin{columns}
+    \column{0.55\textwidth}
+    \textbf{Estrategia:}
+    \begin{itemize}
+      \item 3 funciones de membresía Gaussianas por parámetro (Low, Medium, High)
+      \item Red neuronal feedforward (12 $\to$ 16 $\to$ 4) ajusta centros y anchos
+      \item Inferencia difusa: reglas heurísticas basadas en el costo
+      \item Entrenamiento: muestreo $\to$ evaluar $\to$ retropropagar
+    \end{itemize}
+
+    \textbf{Parámetros óptimos:}
+    \[
+    a = 0.883,\; b = 0.013,\; c = 0.004,\; d = 0.269
+    \]
+    \[
+    x^{*} = 63.8,\; y^{*} = 66.9
+    \]
+
+    \textbf{Métricas:}
+    \begin{itemize}
+      \item Costo: $-12.11$
+      \item CV: $0.338$
+      \item Retención: $\mathbf{76.4\%}$ (mejor)
+      \item Tiempo: $\mathbf{0.5}$s (más rápido)
+    \end{itemize}
+
+    \column{0.45\textwidth}
+    \centering
+    \begin{tikzpicture}[node distance=0.2cm]
+      \node[draw, fill=ForestGreen!20, rounded corners, inner sep=6pt, align=center] (fuzz) {Fuzzificar $(a,b,c,d)$};
+      \node[draw, fill=ForestGreen!40, rounded corners, inner sep=6pt, align=center, below=of fuzz] (rules) {Reglas difusas};
+      \node[draw, fill=ForestGreen!60, rounded corners, inner sep=6pt, align=center, below=of rules] (nn) {Red Neuronal};
+      \node[draw, fill=ForestGreen!80, rounded corners, inner sep=6pt, align=center, below=of nn, text=white] (defuzz) {Defuzzificar $\to$ Ajuste};
+      \draw[->, thick] (fuzz.south) -- (rules.north);
+      \draw[->, thick] (rules.south) -- (nn.north);
+      \draw[->, thick] (nn.south) -- (defuzz.north);
+    \end{tikzpicture}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile, shrink]{ANFIS — Código: sistema neuro-difuso}
+  \textbf{\textcolor{ForestGreen}{Núcleo del optimizador:}} fuzzificación de parámetros
+  + red neuronal para ajuste fino.
+
+  \vspace{0.2cm}
+  \textbf{Fuzzificación con Gaussianas:}
+  \begin{pycode}[basicstyle=\ttfamily\scriptsize, numbers=none]
+def _fuzzify(self, params):
+    a, b, c, d = params
+    x = np.array([a, b, c, d])
+    phi = []
+    for i in range(4):                 # para cada parámetro
+        for j in range(self.n_mf):     # Low, Medium, High
+            val = exp(-((x[i] - mu[i,j])**2) / (2 * sigma[i,j]**2))
+            phi.append(val)            # grado de membresía
+    return np.array(phi)               # vector de 12 características
+  \end{pycode}
+
+  \textbf{Red neuronal feedforward (12→16→4):}
+  \begin{pycode}[basicstyle=\ttfamily\scriptsize, numbers=none]
+def _nn_predict(self, phi):
+    h = np.tanh(self.W1.T @ phi + self.b1)      # capa oculta
+    out = self.W2.T @ h + self.b2                # capa de salida
+    return np.tanh(out) * 0.1                    # ajuste acotado
+
+def _nn_train(self, phi, target, lr=0.01):
+    pred = self._nn_predict(phi)
+    error = pred - target                        # error de ajuste
+    d_W2 = np.outer(h, error * (1 - tanh(out)**2) * 0.1)
+    d_W1 = np.outer(phi, self.W2 @ d_out * (1 - h**2))
+    self.W2 -= lr * d_W2                         # retropropagación
+    self.W1 -= lr * d_W1
+  \end{pycode}
+\end{frame}
+
+% ======================================================================
+\section{Comparaciones}
+% ======================================================================
+
+\begin{frame}{Configuración de entrada — 3 optimizadores}
+  \centering
+  \textbf{Parámetros comunes del sistema Lotka-Volterra:}
+  \vspace{0.2cm}
+  \begin{columns}
+    \column{0.45\textwidth}
+    \begin{block}{Condiciones iniciales}
+      \[
+      x_0 = 40,\quad y_0 = 50
+      \]
+      Tiempo de muestreo: $T = 0.1$
+    \end{block}
+    \column{0.55\textwidth}
+    \begin{block}{Función objetivo}
+      Costo = Ganancia - Penalizaciones
+      \vspace{-0.2cm}
+      \[
+      J = -\bigl(0.6\,G - 0.3\,\text{CV} - 0.1\,\text{R}^{-1}\bigr)
+      \]
+    \end{block}
+  \end{columns}
+  \vspace{0.3cm}
+  \begin{columns}
+    \column{0.33\textwidth}
+    \centering
+    \textcolor{MidnightBlue}{\textbf{DE}}
+    \newline \small pobl=50, gen=1500
+    \newline \small \texttt{L-BFGS-B}
+    \column{0.33\textwidth}
+    \centering
+    \textcolor{Plum}{\textbf{SGD}}
+    \newline \small lr=0.005, mom=0.85
+    \newline \small grid $>50$ reinicios
+    \column{0.33\textwidth}
+    \centering
+    \textcolor{ForestGreen}{\textbf{ANFIS}}
+    \newline \small 3 MF Gaussianas
+    \newline \small red 12$\to$16$\to$4
+  \end{columns}
+  \vspace{0.3cm}
+  \centering
+  \scriptsize Límites de búsqueda: $\alpha \in [0.2,1.0]$, $\beta \in [0.005,0.04]$, $\delta \in [0.002,0.04]$, $\gamma \in [0.1,0.7]$
+\end{frame}
+
+\begin{frame}{Métricas clave — barras comparativas}
+  \centering
+  \includegraphics[width=0.75\textwidth, height=0.75\textheight, keepaspectratio]{comparativa_optimizadores_barras.png}
+\end{frame}
+
+\begin{frame}{Perfil radial (spider chart)}
+  \begin{columns}
+    \column{0.5\textwidth}
+    \centering
+    \includegraphics[width=0.9\textwidth]{comparativa_spider.png}
+
+    \column{0.5\textwidth}
+    \small
+    \textbf{Cada eje:} métrica normalizada al mejor valor.
+    \begin{itemize}
+      \item[$\bullet$] \textcolor{MidnightBlue}{DE}: domina en costo y ganancia
+      \item[$\bullet$] \textcolor{Plum}{SGD}: mejor estabilidad (CV bajo)
+      \item[$\bullet$] \textcolor{ForestGreen}{ANFIS}: máxima retención
+    \end{itemize}
+    \vspace{0.3cm}
+    \textbf{Área $\propto$ desempeño global.}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Evolución temporal — trayectorias}
+  \centering
+  \includegraphics[width=0.75\textwidth, height=0.75\textheight, keepaspectratio]{comparativa_evolucion.png}
+\end{frame}
+
+\begin{frame}{Diagrama de fase — comparación}
+  \centering
+  \includegraphics[width=0.6\textwidth, height=0.75\textheight, keepaspectratio]{comparativa_fase.png}
+\end{frame}
+
+\begin{frame}{Eficiencia: Costo vs Tiempo}
+  \centering
+  \includegraphics[width=0.7\textwidth]{comparativa_eficiencia.png}
+
+  \vspace{0.2cm}
+  \small
+  El mejor optimizador minimiza el costo en el menor tiempo
+  (esquina inferior izquierda).
+\end{frame}
+
+\begin{frame}{Tabla resumen comparativa}
+  \centering
+  \footnotesize
+  \begin{tabular}{lcccccc}
+    \toprule
+    \textbf{Optimizador} & \textbf{Costo} & \textbf{CV} & \textbf{Ret.} & \textbf{Gan.} & \textbf{Tiempo} & \textbf{Prec.} \\[0.1cm]
+    \rowcolor{MidnightBlue!15}
+    DE & $\mathbf{-27.95}$ & 0.103 & 49.7\% & $\mathbf{\$70.60}$ & 13.0s & Alto \\[0.15cm]
+    \rowcolor{Plum!15}
+    SGD & $-25.34$ & $\mathbf{0.041}$ & 49.7\% & \$61.72 & 19.9s & Medio \\[0.15cm]
+    \rowcolor{ForestGreen!15}
+    ANFIS & $-12.11$ & 0.338 & $\mathbf{76.4\%}$ & \$39.95 & $\mathbf{0.5}$s & Bajo \\[0.15cm]
+    \bottomrule
+  \end{tabular}
+
+  \vspace{0.3cm}
+  \begin{block}{Ranking final (puntuación 1-10)}
+    \#1 DE (6.66) \quad \#2 SGD (5.58) \quad \#3 ANFIS (4.60)
+  \end{block}
+\end{frame}
+
+% ======================================================================
+\section{Conclusiones}
+% ======================================================================
+
+\begin{frame}{Conclusiones}
+  \begin{enumerate}
+    \item \textbf{DE es el mejor optimizador global:} encuentra el costo más bajo
+      ($-27.95$) y la mayor ganancia (\$70.60/mes). Es la opción recomendada
+      para producción.
+    \bigskip
+    \item \textbf{SGD es competitivo para re-optimización:} con grid de reinicios
+      logra un costo cercano ($-25.34$) y la mejor estabilidad (CV=0.041),
+      aunque es más lento.
+    \bigskip
+    \item \textbf{ANFIS ofrece un trade-off distinto:} maximiza retención (76.4\%)
+      sacrificando ganancia. Su tiempo de cómputo es mínimo (0.5s).
+      Útil para explorar estrategias alternativas.
+    \bigskip
+    \item \textbf{El equilibrio $x^{*}=d/c$, $y^{*}=a/b$ se mantiene} como atractor
+      del sistema independientemente del optimizador.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Recomendaciones estratégicas}
+  \centering
+  \begin{tikzpicture}
+    \node[draw, rounded corners, fill=MidnightBlue!20, minimum width=10cm, minimum height=1.5cm] {
+      \textbf{Algoritmo de matching (c):} dosificar coincidencias
+    };
+    \node[draw, rounded corners, fill=Plum!20, minimum width=10cm, minimum height=1.5cm, below=0.5cm] {
+      \textbf{Retención (d):} mantener esperanza sin éxito inmediato
+    };
+    \node[draw, rounded corners, fill=ForestGreen!20, minimum width=10cm, minimum height=1.5cm, below=0.5cm] {
+      \textbf{Proporción x/y:} ideal 0.5--1.0 perfiles por usuario
+    };
+  \end{tikzpicture}
+
+  \vspace{0.5cm}
+  \begin{equation*}
+    \boxed{\text{Óptimo: } a = 0.279,\; b = 0.005,\; c = 0.018,\; d = 0.700}
+  \end{equation*}
+\end{frame}
+
+\begin{frame}
+  \centering
+  \vspace{2cm}
+  {\Huge \textbf{Gracias}}\\[0.5cm]
+  {\large Preguntas?}
+\end{frame}
+
+\end{document}
