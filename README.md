@@ -1,90 +1,78 @@
-# Dating App Optimization — Predator-Prey Model (Lotka-Volterra)
+# Dating App Optimization — Modelo Depredador-Presa (Lotka-Volterra)
 
-Nonlinear optimization of a dating app using the Lotka-Volterra model. The algorithm balances matching efficiency (δ), user retention (γ), and profile growth (α) to maximize profitability while maintaining a stable equilibrium.
+Optimización no lineal de una app de citas usando el modelo de Lotka-Volterra con 3 optimizadores. Balancea eficiencia del algoritmo, retención de usuarios y crecimiento de perfiles para maximizar rentabilidad manteniendo un equilibrio estable.
 
-## Quick start
+## Archivos principales
+
+| Archivo | Descripción |
+|---------|-------------|
+| `optimizar_app_citas.py` | Clase `DatingAppOptimizer` (DE + L-BFGS-B) |
+| `optimizadores.py` | 3 optimizadores: DE, SGD, ANFIS con interfaz unificada |
+| `comparacion_escenarios.ipynb` | Notebook: 4 escenarios de app (nueva, crecimiento, establecida, masiva) |
+| `comparativa_3_optimizadores.ipynb` | Notebook: comparación de los 3 optimizadores |
+| `presentacion.tex` | Presentación Beamer (29 diapositivas, 16:9) |
+
+## Ecuaciones del sistema
+
+```
+ẋ = a·x − b·x·y    (perfiles / matches potenciales)
+ẏ = c·x·y − d·y    (usuarios activos)
+```
+
+**Punto de equilibrio:** `x* = d/c`, `y* = a/b`
+
+**Parámetros del modelo:**
+
+| Parámetro | Nombre | Significado |
+|-----------|--------|-------------|
+| `a` | alpha (α) | Crecimiento de perfiles (nuevos registros) |
+| `b` | beta (β) | Tasa de match (interacción entre usuarios) |
+| `c` | delta (δ) | Eficiencia del algoritmo de emparejamiento |
+| `d` | gamma (γ) | Abandono de usuarios (tasa de deserción) |
+
+## Optimizadores
+
+### 1. Differential Evolution + L-BFGS-B (`DifferentialEvolutionOptimizer`)
+- Búsqueda evolutiva global con población de 50 individuos, 1500 generaciones
+- Refinamiento local con L-BFGS-B
+- **Costo:** –27.95 (mejor), **CV:** 0.103, **Ganancia:** \$70.60/mes
+
+### 2. SGD (`SGDOptimizer`)
+- Gradiente aproximado por diferencias finitas con momentum (0.85)
+- Grid de >50 puntos de inicio + reinicios aleatorios
+- **Costo:** –25.34, **CV:** 0.041 (más estable), **Ganancia:** \$61.72/mes
+
+### 3. ANFIS (`ANFISOptimizer`)
+- Fuzzificación con 3 funciones de membresía Gaussianas por parámetro
+- Red neuronal feedforward (12→16→4)
+- **Costo:** –12.11, **Retención:** 76.4% (mejor), **Tiempo:** 0.5s (más rápido)
+
+## Métricas de evaluación
+
+| Métrica | Mide | Dirección óptima |
+|---------|------|-----------------|
+| Costo (J) | Función objetivo multi-objetivo | Más negativo |
+| CV | Coeficiente de variación (estabilidad) | Menor (<0.3) |
+| Retención | `e^{-d}` (usuarios que no abandonan) | Mayor |
+| Ganancia | Ingreso estimado en \$/mes | Mayor |
+| Tiempo | Segundos de ejecución | Menor |
+
+## Instalación y uso
 
 ```bash
-# 1. Clone and enter the project
-git clone <repo-url> && cd dating-app-optimization
-
-# 2. Create a virtual environment (optional but recommended)
-python -m venv .venv && source .venv/bin/activate
-
-# 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Run the optimizer
+# Clase DatingAppOptimizer
 python optimizar_app_citas.py
 
-# 5. Or launch the comparison notebook
+# Notebooks
 jupyter notebook comparacion_escenarios.ipynb
+jupyter notebook comparativa_3_optimizadores.ipynb
+
+# Compilar presentación
+pdflatex presentacion.tex
 ```
 
-**System equations:**
-- `ẋ = αx − βxy` (profiles / potential matches)
-- `ẏ = δxy − γy` (active users)
+## Stack
 
-**Equilibrium point:** `x* = γ/δ`, `y* = α/β`
-
-**System parameters:**
-- `a` = α (profile growth rate)
-- `b` = β (match rate)
-- `c` = δ (algorithm efficiency)
-- `d` = γ (user abandonment rate)
-
-**Stack:** Python, NumPy, SciPy (optimization), Matplotlib.
-
-## Optimization method
-
-Uses **Differential Evolution** (`scipy.optimize.differential_evolution`) — a gradient-free evolutionary algorithm — followed by local refinement with L-BFGS-B. The cost function `J` minimizes:
-
-| Objective | Target |
-|---|---|
-| Profile/user ratio | ~0.6 (enough to browse, not overwhelming) |
-| Active users | ~55 (profitable base) |
-| Stability | Low coefficient of variation (CV) at steady state |
-| Retention | Maximize `e^{-d}` (users don't churn) |
-| Profit | Ads + premium revenue minus operating costs |
-| Fixed-point coherence | Simulated equilibrium matches `x* = d/c`, `y* = a/b` |
-
-The optimal solution is the *only* stable scenario (CV ≈ 0.09) among all evaluated configurations.
-
-## Class-based usage
-
-```python
-from optimizar_app_citas import DatingAppOptimizer
-
-opt = DatingAppOptimizer(a=0.3, b=0.006, c=0.018, d=0.7)
-
-# Custom initial conditions
-opt.set_initial_conditions(x0=40, y0=50)
-
-# Run global optimization
-opt.optimize(n_steps=800)
-
-# Analyse counterfactual scenarios
-opt.analyse_scenarios()
-
-# Plot results
-opt.plot_results("resultados.png")
-
-# Access optimal parameters
-print(opt.a, opt.b, opt.c, opt.d)
-```
-
-Multiple independent instances can be created and compared:
-
-```python
-for x0, y0 in [(5, 8), (40, 50), (500, 300)]:
-    o = DatingAppOptimizer()
-    o.set_initial_conditions(x0, y0)
-    o.optimize()
-    o.plot_results(f"opt_{x0}_{y0}.png")
-```
-
-## Notebook
-
-`comparacion_escenarios.ipynb` explores four app stages (new, growing, established, massive) side-by-side with plots and comparison tables.
-
-Run: `python optimizar_app_citas.py`
+Python, NumPy, SciPy, Matplotlib, LaTeX (Beamer).
