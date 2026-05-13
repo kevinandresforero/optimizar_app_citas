@@ -243,6 +243,111 @@
 \section{Optimizador 1: Differential Evolution}
 % ======================================================================
 
+\begin{frame}{DE — ¿Cómo funciona?}
+  \centering
+  \textbf{Algoritmo evolutivo — inspirado en la selección natural}
+
+  \vspace{0.2cm}
+  \begin{tikzpicture}[node distance=0.3cm]
+    \node[draw, fill=MidnightBlue!20, rounded corners, inner sep=6pt, align=center] (pop) {\textbf{Población inicial}\\[0.05cm] \tiny 50 soluciones aleatorias};
+    \node[draw, fill=MidnightBlue!40, rounded corners, inner sep=6pt, align=center, right=1.5cm of pop] (mut) {\textbf{Mutación + Cruce}\\[0.05cm] \tiny Se mezclan para crear nuevas};
+    \node[draw, fill=MidnightBlue!60, rounded corners, inner sep=6pt, align=center, right=1.5cm of mut] (sel) {\textbf{Selección}\\[0.05cm] \tiny Solo sobrevive la mejor};
+    \draw[->, thick] (pop.east) -- (mut.west);
+    \draw[->, thick] (mut.east) -- (sel.west);
+    \draw[->, thick, rounded corners] (sel.north) -- ++(0,1) -- ++(-6.5,0) -- (pop.north);
+    \node[above=0.7cm of mut, scale=0.6] {\bfseries Repetir 1500 generaciones};
+  \end{tikzpicture}
+
+  \vspace{0.3cm}
+  \begin{columns}
+    \column{0.5\textwidth}
+    \begin{block}{Analogía}
+      \scriptsize
+      Como una competencia: generamos muchas versiones de los parámetros,
+      las combinamos, y solo gana la que da mejor resultado en cada ronda.
+    \end{block}
+    \column{0.5\textwidth}
+    \begin{block}{Después del DE}
+      \scriptsize
+      Se aplica \texttt{L-BFGS-B} para refinar localmente
+      la mejor solución encontrada.
+    \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{L-BFGS-B — ¿Cómo funciona?}
+  \centering
+  \textbf{Optimizador local basado en gradiente — el \"refinador\"}
+
+  \vspace{0.2cm}
+  \begin{tikzpicture}[node distance=0.3cm]
+    \node[draw, fill=ForestGreen!20, rounded corners, inner sep=6pt, align=center] (start) {\textbf{Punto de partida}\\[0.05cm] \tiny La mejor solución del DE};
+    \node[draw, fill=ForestGreen!40, rounded corners, inner sep=6pt, align=center, right=1.5cm of start] (grad) {\textbf{Calcula pendiente}\\[0.05cm] \tiny Dirección cuesta abajo};
+    \node[draw, fill=ForestGreen!60, rounded corners, inner sep=6pt, align=center, right=1.5cm of grad] (step) {\textbf{Avanza un paso}\\[0.05cm] \tiny Sin salirse de los límites};
+    \draw[->, thick] (start.east) -- (grad.west);
+    \draw[->, thick] (grad.east) -- (step.west);
+    \draw[->, thick, rounded corners] (step.north) -- ++(0,1) -- ++(-6.5,0) -- (start.north);
+    \node[above=0.7cm of grad, scale=0.6] {\bfseries Repetir hasta converger};
+  \end{tikzpicture}
+
+  \vspace{0.25cm}
+  \begin{columns}[t]
+    \column{0.5\textwidth}
+    \begin{block}{¿Qué significa el nombre?}
+      \scriptsize
+      \textbf{L}imited memory: solo recuerda los últimos pasos \\[0.05cm]
+      \textbf{BFGS}: método que aproxima la curvatura \\[0.05cm]
+      \textbf{B}ox: respeta límites (caja) en cada parámetro
+    \end{block}
+    \column{0.5\textwidth}
+    \begin{block}{Analogía}
+      \scriptsize
+      Como bajar una montaña con los ojos cerrados:
+      sientes la pendiente con el pie (\textit{gradiente}),
+      das un paso en esa dirección, y repites hasta
+      llegar al valle. Las \textit{cajas} son cercos
+      que impiden salir del camino permitido.
+    \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[shrink]{L-BFGS-B vs SGD — Diferencias clave}
+  \centering
+  \textbf{Dos formas de bajar la montaña}
+
+  \vspace{0.2cm}
+  \begin{columns}[t]
+    \column{0.5\textwidth}
+    \begin{block}{\textcolor{ForestGreen}{L-BFGS-B}}
+      \begin{itemize}
+        \item Usa el \textbf{gradiente exacto} (diferencias finitas)
+        \item Estima la \textbf{curvatura} del terreno (Hessiana aproximada)
+        \item Un solo camino, muy pulido
+        \item Pasos más inteligentes (tamaño adaptativo)
+      \end{itemize}
+      \vspace{0.1cm}
+      \scriptsize
+      \textbf{Analogía:} Caminas con un mapa topográfico
+      — sabes la pendiente y la forma del terreno.
+    \end{block}
+
+    \column{0.5\textwidth}
+    \begin{block}{\textcolor{Plum}{SGD}}
+      \begin{itemize}
+        \item Usa un \textbf{gradiente aproximado} ruidoso
+        \item Ignora la curvatura (solo dirección)
+        \item Múltiples reinicios desde distintos puntos
+        \item Momentum para no quedarse atascado
+      \end{itemize}
+      \vspace{0.1cm}
+      \scriptsize
+      \textbf{Analogía:} Lanzas 50 personas desde distintos
+      puntos de la montaña, cada una baja a ciegas
+      sintiendo el piso.
+    \end{block}
+  \end{columns}
+\end{frame}
+
 \begin{frame}{DE — Differential Evolution}
   \begin{columns}
     \column{0.55\textwidth}

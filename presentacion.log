@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.5.13)  13 MAY 2026 10:30
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.5.13)  13 MAY 2026 10:45
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1278,6 +1278,12 @@ LaTeX Font Info:    Font shape `T1/lmss/bx/it' in size <6> not available
 
 ] [10
 
+] [11
+
+] [12
+
+] [13
+
 ]
 \openout4 = `presentacion.vrb'.
 
@@ -1287,20 +1293,20 @@ File: lstlang1.sty 2025/11/14 1.11b listings language file
 ))
 
 Class beamer Warning: Frame text is shrunk by a factor of 29.23737 percent inst
-ead of 0 percent on input line 325.
+ead of 0 percent on input line 430.
 
-[11
+[14
 
 ]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 369.
+(Font)              <9> on input line 474.
 LaTeX Font Info:    Font shape `T1/lmss/b/n' in size <9> not available
-(Font)              Font shape `T1/lmss/bx/n' tried instead on input line 369.
+(Font)              Font shape `T1/lmss/bx/n' tried instead on input line 474.
 LaTeX Font Info:    Font shape `T1/lmss/b/n' in size <5> not available
-(Font)              Font shape `T1/lmss/bx/n' tried instead on input line 369.
+(Font)              Font shape `T1/lmss/bx/n' tried instead on input line 474.
 LaTeX Font Info:    Font shape `T1/lmss/m/it' in size <9> not available
-(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 369.
- [12
+(Font)              Font shape `T1/lmss/m/sl' tried instead on input line 474.
+ [15
 
 ]
 \openout4 = `presentacion.vrb'.
@@ -1308,11 +1314,11 @@ LaTeX Font Info:    Font shape `T1/lmss/m/it' in size <9> not available
  (./presentacion.vrb)
 
 Class beamer Warning: Frame text is shrunk by a factor of 32.16705 percent inst
-ead of 0 percent on input line 406.
+ead of 0 percent on input line 511.
 
-[13
+[16
 
-] [14
+] [17
 
 ]
 \openout4 = `presentacion.vrb'.
@@ -1325,65 +1331,65 @@ File: ts1lmss.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 ))
 
 Class beamer Warning: Frame text is shrunk by a factor of 24.469 percent instea
-d of 0 percent on input line 487.
+d of 0 percent on input line 592.
 
-[15
+[18
 
 {/usr/share/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}]
 LaTeX Font Info:    Font shape `T1/lmss/b/n' in size <10> not available
-(Font)              Font shape `T1/lmss/bx/n' tried instead on input line 535.
+(Font)              Font shape `T1/lmss/bx/n' tried instead on input line 640.
 LaTeX Font Info:    Font shape `T1/lmss/b/n' in size <7> not available
-(Font)              Font shape `T1/lmss/bx/n' tried instead on input line 535.
- [16
+(Font)              Font shape `T1/lmss/bx/n' tried instead on input line 640.
+ [19
 
 ]
-<comparativa_optimizadores_barras.png, id=576, 1004.0712pt x 712.1004pt>
+<comparativa_optimizadores_barras.png, id=731, 1004.0712pt x 712.1004pt>
 File: comparativa_optimizadores_barras.png Graphic file (type png)
 <use comparativa_optimizadores_barras.png>
 Package pdftex.def Info: comparativa_optimizadores_barras.png  used on input li
-ne 540.
+ne 645.
 (pdftex.def)             Requested size: 257.40599pt x 182.55568pt.
- [17
-
- <./comparativa_optimizadores_barras.png>]
-<comparativa_spider.png, id=605, 569.4876pt x 541.5432pt>
-File: comparativa_spider.png Graphic file (type png)
-<use comparativa_spider.png>
-Package pdftex.def Info: comparativa_spider.png  used on input line 559.
-(pdftex.def)             Requested size: 195.06648pt x 185.49394pt.
- [18
-
- <./comparativa_spider.png>]
-<comparativa_evolucion.png, id=635, 1005.0348pt x 358.4592pt>
-File: comparativa_evolucion.png Graphic file (type png)
-<use comparativa_evolucion.png>
-Package pdftex.def Info: comparativa_evolucion.png  used on input line 564.
-(pdftex.def)             Requested size: 325.09888pt x 115.95088pt.
- [19
-
- <./comparativa_evolucion.png>]
-<comparativa_fase.png, id=665, 715.9548pt x 571.8966pt>
-File: comparativa_fase.png Graphic file (type png)
-<use comparativa_fase.png>
-Package pdftex.def Info: comparativa_fase.png  used on input line 569.
-(pdftex.def)             Requested size: 228.54214pt x 182.55687pt.
  [20
 
- <./comparativa_fase.png>]
-<comparativa_eficiencia.png, id=693, 713.5458pt x 427.3566pt>
-File: comparativa_eficiencia.png Graphic file (type png)
-<use comparativa_eficiencia.png>
-Package pdftex.def Info: comparativa_eficiencia.png  used on input line 579.
-(pdftex.def)             Requested size: 303.4375pt x 181.73174pt.
+ <./comparativa_optimizadores_barras.png>]
+<comparativa_spider.png, id=760, 569.4876pt x 541.5432pt>
+File: comparativa_spider.png Graphic file (type png)
+<use comparativa_spider.png>
+Package pdftex.def Info: comparativa_spider.png  used on input line 664.
+(pdftex.def)             Requested size: 195.06648pt x 185.49394pt.
  [21
 
- <./comparativa_eficiencia.png>] [22
+ <./comparativa_spider.png>]
+<comparativa_evolucion.png, id=790, 1005.0348pt x 358.4592pt>
+File: comparativa_evolucion.png Graphic file (type png)
+<use comparativa_evolucion.png>
+Package pdftex.def Info: comparativa_evolucion.png  used on input line 669.
+(pdftex.def)             Requested size: 325.09888pt x 115.95088pt.
+ [22
 
-] [23
+ <./comparativa_evolucion.png>]
+<comparativa_fase.png, id=819, 715.9548pt x 571.8966pt>
+File: comparativa_fase.png Graphic file (type png)
+<use comparativa_fase.png>
+Package pdftex.def Info: comparativa_fase.png  used on input line 674.
+(pdftex.def)             Requested size: 228.54214pt x 182.55687pt.
+ [23
 
-] [24
+ <./comparativa_fase.png>]
+<comparativa_eficiencia.png, id=848, 713.5458pt x 427.3566pt>
+File: comparativa_eficiencia.png Graphic file (type png)
+<use comparativa_eficiencia.png>
+Package pdftex.def Info: comparativa_eficiencia.png  used on input line 684.
+(pdftex.def)             Requested size: 303.4375pt x 181.73174pt.
+ [24
 
-] [25
+ <./comparativa_eficiencia.png>] [25
+
+] [26
+
+] [27
+
+] [28
 
 ]
 \tf@nav=\write6
@@ -1404,13 +1410,13 @@ Package rerunfilecheck Info: File `presentacion.out' has not changed.
 (rerunfilecheck)             Checksum: C6BC95D0AA2D84C624E356E836CC7F48;903.
  ) 
 Here is how much of TeX's memory you used:
- 32357 strings out of 469453
- 657022 string characters out of 5469037
- 1597943 words of memory out of 5000000
- 60322 multiletter control sequences out of 15000+600000
+ 32431 strings out of 469453
+ 659183 string characters out of 5469037
+ 1599308 words of memory out of 5000000
+ 60390 multiletter control sequences out of 15000+600000
  755296 words of font info for 129 fonts, out of 8000000 for 9000
  40 hyphenation exceptions out of 8191
- 101i,15n,112p,414b,1439s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 101i,15n,112p,414b,1438s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf-dist/fonts/type1/public/lm/lmbsy10.pfb></usr/share/texmf-di
 st/fonts/type1/public/lm/lmex10.pfb></usr/share/texmf-dist/fonts/type1/public/l
 m/lmmi10.pfb></usr/share/texmf-dist/fonts/type1/public/lm/lmmi8.pfb></usr/share
@@ -1428,10 +1434,10 @@ f-dist/fonts/type1/public/lm/lmsy8.pfb></usr/share/texmf-dist/fonts/type1/publi
 c/lm/lmsy9.pfb></usr/share/texmf-dist/fonts/type1/public/lm/lmtt10.pfb></usr/sh
 are/texmf-dist/fonts/type1/public/lm/lmtt8.pfb></usr/share/texmf-dist/fonts/typ
 e1/public/lm/lmtt9.pfb>
-Output written on presentacion.pdf (25 pages, 1165325 bytes).
+Output written on presentacion.pdf (28 pages, 1192242 bytes).
 PDF statistics:
- 967 PDF objects out of 1000 (max. 8388607)
- 800 compressed objects within 8 object streams
- 57 named destinations out of 1000 (max. 500000)
- 318 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1123 PDF objects out of 1200 (max. 8388607)
+ 912 compressed objects within 10 object streams
+ 63 named destinations out of 1000 (max. 500000)
+ 534 words of extra memory for PDF output out of 10000 (max. 10000000)
 
