@@ -331,6 +331,160 @@ class DatingAppOptimizer:
         plt.close()
         print(f"\n  Grafico guardado en: {save_path}")
 
+    def diagnose(self, n_steps=800, n_random=500, n_seeds=5):
+        """Evaluate optimizer quality through consistency and baseline tests.
+
+        Runs the optimizer multiple times with different random seeds to
+        check convergence consistency, compares against random parameter
+        sets, and performs a local sensitivity analysis around the optimum.
+
+        Args:
+            n_steps: Simulation steps for cost evaluation.
+            n_random: Number of random parameter sets to sample.
+            n_seeds: Number of optimizer runs with different seeds.
+
+        Returns:
+            Dict with keys:
+                - 'seeds': list of (seed, cost, params) for each run.
+                - 'cost_opt': optimal cost found.
+                - 'cost_random_mean': mean cost of random baselines.
+                - 'cost_random_std': std of random baselines.
+                - 'percentile_opt': percentile of optimum vs random.
+                - 'cv_range': (min_cv, max_cv) across seeds.
+                - 'sensitivity': dict of parameter perturbation impacts.
+        """
+        print("=" * 62)
+        print("     DIAGNOSTICO DEL OPTIMIZADOR")
+        print("=" * 62)
+
+        info = {}
+
+        # 1. Consistency across random seeds
+        print(f"\n  --- 1. Consistencia ({n_seeds} ejecuciones con distintas semillas) ---")
+        seeds_results = []
+        best_cost = float('inf')
+        best_params = None
+        for seed in range(n_seeds):
+            res = differential_evolution(
+                lambda p: self._cost_function(p, n_steps),
+                [self.ALPHA_BOUNDS, self.BETA_BOUNDS,
+                 self.DELTA_BOUNDS, self.GAMMA_BOUNDS],
+                strategy='best1bin', maxiter=1500, popsize=50,
+                tol=1e-8, seed=seed,
+            )
+            seeds_results.append((seed, res.fun, res.x))
+            if res.fun < best_cost:
+                best_cost = res.fun
+                best_params = res.x
+            print(f"    seed={seed:2d}  cost={res.fun:>10.2f}  "
+                  f"params=({res.x[0]:.3f}, {res.x[1]:.4f}, "
+                  f"{res.x[2]:.4f}, {res.x[3]:.3f})")
+
+        costs = [c for _, c, _ in seeds_results]
+        info['seeds'] = seeds_results
+        info['cost_opt'] = best_cost
+
+        cv_values = []
+        for _, _, p in seeds_results:
+            x, y = self.simulate(*p, n_steps=n_steps)
+            cv = float(np.std(y[n_steps // 2:]) / max(np.mean(y[n_steps // 2:]), 1))
+            cv_values.append(cv)
+        info['cv_range'] = (min(cv_values), max(cv_values))
+
+        mean_cost = float(np.mean(costs))
+        std_cost = float(np.std(costs))
+        pct_var = std_cost / max(abs(mean_cost), 1) * 100
+        print(f"\n    Costo promedio: {mean_cost:.2f} +/- {std_cost:.2f}  "
+              f"(variacion {pct_var:.1f}%)")
+        print(f"    Mejor costo:    {best_cost:.2f}")
+        print(f"    Rango CV:       {min(cv_values):.3f} - {max(cv_values):.3f}")
+
+        if pct_var < 5:
+            print(f"    >>> CONSISTENCIA ALTA (variacion < 5%)")
+        elif pct_var < 15:
+            print(f"    >>> CONSISTENCIA MODERADA (variacion 5-15%)")
+        else:
+            print(f"    >>> CONSISTENCIA BAJA (variacion > 15%)")
+
+        # 2. Random baseline comparison
+        print(f"\n  --- 2. Comparacion contra {n_random} parametros aleatorios ---")
+        rng = np.random.default_rng(42)
+        random_costs = []
+        for _ in range(n_random):
+            p = [
+                rng.uniform(*self.ALPHA_BOUNDS),
+                rng.uniform(*self.BETA_BOUNDS),
+                rng.uniform(*self.DELTA_BOUNDS),
+                rng.uniform(*self.GAMMA_BOUNDS),
+            ]
+            random_costs.append(self._cost_function(p, n_steps))
+
+        random_mean = float(np.mean(random_costs))
+        random_std = float(np.std(random_costs))
+        percent_better = sum(1 for c in random_costs if c > best_cost) / n_random * 100
+        mejora = (random_mean - best_cost) / max(abs(random_mean), 1) * 100
+
+        info['cost_random_mean'] = random_mean
+        info['cost_random_std'] = random_std
+        info['percentile_opt'] = percent_better
+
+        print(f"    Costo aleatorio promedio: {random_mean:.2f} +/- {random_std:.2f}")
+        print(f"    Costo optimo:             {best_cost:.2f}")
+        print(f"    Mejora vs aleatorio:      {mejora:.1f}%")
+        print(f"    Percentil del optimo:     {percent_better:.1f}% "
+              f"(supera al {percent_better:.0f}% de los aleatorios)")
+
+        if mejora > 50:
+            print(f"    >>> RENDIMIENTO EXCELENTE (mejora > 50%)")
+        elif mejora > 20:
+            print(f"    >>> RENDIMIENTO BUENO (mejora 20-50%)")
+        else:
+            print(f"    >>> RENDIMIENTO MODERADO (mejora < 20%)")
+
+        # 3. Sensitivity analysis around optimum
+        print(f"\n  --- 3. Analisis de sensibilidad local ---")
+        a, b, c, d = best_params
+        sens = {}
+        for name, val, bounds, perturb in [
+            ('a (alpha)', a, self.ALPHA_BOUNDS, 0.1),
+            ('b (beta)',  b, self.BETA_BOUNDS, 0.005),
+            ('c (delta)', c, self.DELTA_BOUNDS, 0.005),
+            ('d (gamma)', d, self.GAMMA_BOUNDS, 0.1),
+        ]:
+            cost_base = self._cost_function(best_params, n_steps)
+            cost_up = self._cost_function(
+                [a + (perturb if name == 'a (alpha)' else 0),
+                 b + (perturb if name == 'b (beta)' else 0),
+                 c + (perturb if name == 'c (delta)' else 0),
+                 d + (perturb if name == 'd (gamma)' else 0)],
+                n_steps
+            )
+            cost_down = self._cost_function(
+                [a - (perturb if name == 'a (alpha)' else 0),
+                 b - (perturb if name == 'b (beta)' else 0),
+                 c - (perturb if name == 'c (delta)' else 0),
+                 d - (perturb if name == 'd (gamma)' else 0)],
+                n_steps
+            )
+            delta_up = abs(cost_up - cost_base) / max(abs(cost_base), 1)
+            delta_down = abs(cost_down - cost_base) / max(abs(cost_base), 1)
+            sens[name] = {'delta_up': delta_up, 'delta_down': delta_down}
+            print(f"    {name:15s}:  perturb={perturb:.3f}  "
+                  f"delta_up={delta_up:.3f}  delta_down={delta_down:.3f}")
+
+        info['sensitivity'] = sens
+
+        # Summary
+        print(f"\n  --- RESUMEN DEL DIAGNOSTICO ---")
+        print(f"  Consistencia entre semillas:  {'ALTA' if pct_var < 5 else 'MODERADA' if pct_var < 15 else 'BAJA'} "
+              f"({pct_var:.1f}%)")
+        print(f"  Mejora vs parametros aleatorios:  {mejora:.1f}%")
+        print(f"  Rango de estabilidad (CV):        {min(cv_values):.3f} - {max(cv_values):.3f}")
+        print(f"  Parametro mas sensible:           "
+              f"{max(sens, key=lambda k: max(sens[k]['delta_up'], sens[k]['delta_down']))}")
+
+        return info
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
