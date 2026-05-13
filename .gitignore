@@ -1,11 +1,7 @@
-# Python
 __pycache__/
 *.pyc
-
-# Jupyter
 .ipynb_checkpoints/
 
-# LaTeX auxiliares
 *.aux
 *.log
 *.nav
@@ -17,9 +13,7 @@ __pycache__/
 *.fdb_latexmk
 *.synctex.gz
 
-# Imágenes generadas
 *.png
 
-# Ignorar todos los PDF excepto uno
 *.pdf
 !presentacion.pdf
