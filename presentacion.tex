@@ -223,7 +223,7 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Notación — Métricas de evaluación}
+\begin{frame}[shrink]{Notación — Métricas de evaluación}
   \centering
   \begin{itemize}
     \item[\textbf{CV}] \textbf{C}oefficient of \textbf{V}ariation
@@ -237,6 +237,64 @@
       \newline \hspace{1.2em} $\displaystyle y^{*} = \frac{a}{b}$
   \end{itemize}
 
+  \vspace{0.3cm}
+  \begin{block}{Resumen de métricas de comparación}
+    \centering
+    \scriptsize
+    \begin{tabular}{lcc}
+      \toprule
+      \textbf{Métrica} & \textbf{Mide} & \textbf{Mejor} \\
+      \midrule
+      Costo ($J$) & Función objetivo (penaliza desbalance + inestabilidad, recompensa ganancia/ret.) & más negativo \\
+      CV & Estabilidad del sistema & menor \\
+      Retención & $e^{-d}$, fracción de usuarios que no abandonan & mayor \\
+      Ganancia & Ingreso estimado en \$/mes & mayor \\
+      Tiempo & Segundos de ejecución & menor \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+\end{frame}
+
+% ======================================================================
+\section{Optimizadores}
+% ======================================================================
+
+\begin{frame}{Arquitectura de los optimizadores}
+  \centering
+  \textbf{Entradas y salidas del sistema de optimización}
+
+  \vspace{0.2cm}
+  \begin{columns}[t]
+    \column{0.45\textwidth}
+    \begin{block}{Entradas (inputs)}
+      \vspace{-0.2cm}
+      \begin{itemize}
+        \item Parámetros del modelo: $a, b, c, d$ con cotas
+        \item Condiciones iniciales: $x_0 = 40$, $y_0 = 50$
+        \item Tiempo de muestreo: $T = 0.1$, $N = 800$ pasos
+        \item Función de costo: $J(a,b,c,d)$
+      \end{itemize}
+    \end{block}
+
+    \column{0.55\textwidth}
+    \begin{block}{Salidas (outputs)}
+      \vspace{-0.2cm}
+      \begin{itemize}
+        \item Parámetros óptimos: $a^*, b^*, c^*, d^*$
+        \item Punto de equilibrio: $(x^*, y^*)$
+        \item Trayectorias: $x(t), y(t)$ simuladas
+        \item Métricas: costo $J$, CV, retención, ganancia
+      \end{itemize}
+    \end{block}
+  \end{columns}
+
+  \vspace{0.3cm}
+  \begin{tcolorbox}[colback=MidnightBlue!5, colframe=MidnightBlue, sharp corners, boxrule=0.5pt]
+    \centering
+    \scriptsize
+    \textbf{Objetivo:} encontrar $(a^*, b^*, c^*, d^*)$ que minimicen $J$
+    sujeto a las cotas de cada parámetro.
+  \end{tcolorbox}
 \end{frame}
 
 % ======================================================================
@@ -676,11 +734,6 @@ def _nn_train(self, phi, target, lr=0.01):
 \begin{frame}{Eficiencia: Costo vs Tiempo}
   \centering
   \includegraphics[width=0.7\textwidth]{comparativa_eficiencia.png}
-
-  \vspace{0.2cm}
-  \small
-  El mejor optimizador minimiza el costo en el menor tiempo
-  (esquina inferior izquierda).
 \end{frame}
 
 \begin{frame}{Tabla resumen comparativa}
@@ -729,22 +782,29 @@ def _nn_train(self, phi, target, lr=0.01):
 
 \begin{frame}{Recomendaciones estratégicas}
   \centering
+  \scriptsize
   \begin{tikzpicture}
-    \node[draw, rounded corners, fill=MidnightBlue!20, minimum width=10cm, minimum height=1.5cm] {
-      \textbf{Algoritmo de matching (c):} dosificar coincidencias
+    \node[draw, rounded corners, fill=MidnightBlue!20, minimum width=10cm, minimum height=1.2cm] {
+      \textbf{Algoritmo de matching ($c$):} dosificar coincidencias
     };
-    \node[draw, rounded corners, fill=Plum!20, minimum width=10cm, minimum height=1.5cm, below=0.5cm] {
-      \textbf{Retención (d):} mantener esperanza sin éxito inmediato
+    \node[draw, rounded corners, fill=Plum!20, minimum width=10cm, minimum height=1.2cm, below=0.3cm] {
+      \textbf{Retención ($d$):} mantener esperanza sin éxito inmediato
     };
-    \node[draw, rounded corners, fill=ForestGreen!20, minimum width=10cm, minimum height=1.5cm, below=0.5cm] {
-      \textbf{Proporción x/y:} ideal 0.5--1.0 perfiles por usuario
+    \node[draw, rounded corners, fill=ForestGreen!20, minimum width=10cm, minimum height=1.2cm, below=0.3cm] {
+      \textbf{Proporción $x/y$:} ideal 0.5--1.0 perfiles por usuario
     };
   \end{tikzpicture}
 
-  \vspace{0.5cm}
+  \vspace{0.4cm}
   \begin{equation*}
     \boxed{\text{Óptimo: } a = 0.279,\; b = 0.005,\; c = 0.018,\; d = 0.700}
   \end{equation*}
+  \vspace{0.1cm}
+  \[
+  \underbrace{a}_{\text{crecimiento}} \; \underbrace{b}_{\text{tasa de match}} \;
+  \underbrace{c}_{\text{eficiencia algoritmo}} \; \underbrace{d}_{\text{abandono}}
+  \]
+  \vspace{0.2cm}
 \end{frame}
 
 \begin{frame}
