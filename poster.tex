@@ -1,37 +1,36 @@
 \documentclass[final]{beamer}  
   \mode<presentation> {
-    \usetheme{Antibes}
-    \usecolortheme{orchid}
+    \usetheme{Warsaw}
   }
   \usepackage[utf8]{inputenc}
   \usepackage[spanish]{babel}
   \usepackage{amsmath,amsthm, amssymb, latexsym}
   \usepackage{graphicx}
+  \usepackage{tikz}
   \usepackage{lipsum}
 
+  \usepackage[orientation=portrait,size=a0,scale=1.4]{beamerposter}
+
   \setbeamertemplate{blocks}[rounded][shadow=true]
-  \setbeamerfont{block title}{size=\Large}
-  \setbeamerfont{title}{size=\Huge}
-  \setbeamerfont{author}{size=\Large}
 
   \title[\huge Identificación del Sistema Depredador-Presa]{%
     \huge Identificación del Sistema Depredador-Presa\\mediante Redes Neuronales y ANFIS}
-  \author{Emmanuel Guerrero Piza \\ Kevin Andrés Forero Guaitero}
+  \author{Emmanuel Guerrero Piza \and Kevin Andrés Forero Guaitero}
   \institute[]{Universidad Distrital Francisco José de Caldas\\Bogotá, Colombia}
 
 \begin{document}
 
-\begin{frame}\
+\begin{frame}[fragile]{}
 
 \begin{columns}
-    \begin{column}{.47\textwidth}
+    \begin{column}{.48\textwidth}
 
     \begin{block}{Introducción}
     El modelo de Lotka-Volterra describe la interacción entre presas ($x$) y depredadores ($y$):
-    
-    $\dot{x} = a x - b x y$ \\[0.3cm]
+
+    $\dot{x} = a x - b x y$ \\[0.5cm]
     $\dot{y} = c x y - d y$
-    
+
     Se discretiza con Euler (T=0.1) y se identifican modelos predictivos usando:
     \begin{itemize}
     \item Red Neuronal (MLP)
@@ -39,7 +38,7 @@
     \end{itemize}
     \end{block}
 
-    \vspace{0.5cm}
+    \vspace{1cm}
 
     \begin{block}{Metodología}
     \begin{itemize}
@@ -50,37 +49,37 @@
     \end{itemize}
     \end{block}
 
-    \vspace{0.5cm}
+    \vspace{1cm}
 
     \begin{block}{Arquitectura NN}
     \begin{itemize}
     \item MLP sklearn: (64, 64, 32) neuronas
     \item Activación ReLU
     \item Adam optimizer + early stopping
-    \item Data augmentation con ruido N(0,0.3)
+    \item Data augmentation con ruido $\mathcal{N}(0,0.3)$
     \end{itemize}
     \end{block}
 
-    \vspace{0.5cm}
+    \vspace{1cm}
 
     \begin{block}{Arquitectura ANFIS}
     \begin{itemize}
     \item 9 funciones de membresía gaussianas por entrada
-    \item $\sigma=18$, rejilla uniforme [10,90] → 81 reglas
+    \item $\sigma=18$, rejilla uniforme $[10,90]$ → 81 reglas
     \item Regresión Ridge ($\alpha=0.30$)
-    \item Entrenamiento instantáneo
+    \item Entrenamiento instantáneo (sol. analítica)
     \end{itemize}
     \end{block}
 
     \end{column}
 
-    \begin{column}{.47\textwidth}
+    \begin{column}{.48\textwidth}
 
-    \begin{block}{Resultados - 1-paso}
+    \begin{block}{Resultados - Métricas 1-paso}
     \begin{center}
     \begin{tabular}{lccc}
     \toprule
-    Modelo & MAE & MSE & RMSE \\
+    \textbf{Modelo} & \textbf{MAE} & \textbf{MSE} & \textbf{RMSE} \\
     \midrule
     NN    & 0.60 & 1.64 & 1.28 \\
     ANFIS & 0.90 & 3.95 & 1.99 \\
@@ -89,43 +88,43 @@
     \end{center}
     \end{block}
 
-    \vspace{0.5cm}
+    \vspace{1cm}
 
     \begin{block}{Trayectorias (50 pasos)}
     \begin{center}
     \begin{tabular}{lcc}
     \toprule
-    CI & NN & ANFIS \\
+    \textbf{CI $(x_0,y_0)$} & \textbf{NN} & \textbf{ANFIS} \\
     \midrule
-    (40,50) & 1.35 & 9.46 \\
-    (30,60) & 1.50 & 2.23 \\
-    (20,80) & 1.38 & 1.67 \\
-    (50,30) & 1.41 & 2.43 \\
+    (40, 50) & 1.35 & 9.46 \\
+    (30, 60) & 1.50 & 2.23 \\
+    (20, 80) & 1.38 & 1.67 \\
+    (50, 30) & 1.41 & 2.43 \\
     \midrule
-    Promedio & 1.41 & 3.95 \\
+    \textbf{Promedio} & \textbf{1.41} & 3.95 \\
     \bottomrule
     \end{tabular}
     \end{center}
     \end{block}
 
-    \vspace{0.5cm}
+    \vspace{1cm}
 
     \begin{alertblock}{Conclusiones}
     \begin{itemize}
-    \item La NN logra excelente rendimiento en trayectorias (MAE ~1.4)
+    \item La NN logra excelente rendimiento en trayectorias (MAE $\sim$1.4)
     \item ANFIS más rápido pero menor precisión
     \item Los datos augmentados de trayectorias diversas son clave
     \item Semilla fija garantiza reproducibilidad
     \end{itemize}
     \end{alertblock}
 
-    \vspace{0.5cm}
+    \vspace{1cm}
 
     \begin{block}{Referencias}
     \begin{enumerate}
-    \item A.J. Lotka, Elements of physical biology, 1925
-    \item V. Volterra, Variazioni e fluttuazioni, 1926
-    \item J.-S.R. Jang, ANFIS, IEEE Trans., 1993
+    \item A.J. Lotka, \textit{Elements of physical biology}, 1925
+    \item V. Volterra, \textit{Variazioni e fluttuazioni}, 1926
+    \item J.-S.R. Jang, \textit{ANFIS}, IEEE Trans., 1993
     \end{enumerate}
     \end{block}
 
