@@ -85,7 +85,7 @@ class IdentificadorNN:
 class IdentificadorANFIS:
     def __init__(self, n_mf=4, lr=0.001, n_epochs=500, seed=42,
                  reg_lambda=0.01, patience=30, val_fraction=0.1,
-                 noise_std=0.3):
+                 noise_std=0.3, batch_size=3000):
         self.n_mf = n_mf
         self.lr = lr
         self.n_epochs = n_epochs
@@ -118,6 +118,7 @@ class IdentificadorANFIS:
         self.loss_history = []
         self.val_loss_history = []
         self.noise_std = noise_std
+        self.batch_size = batch_size
 
     def _compute_firing(self, x):
         x = np.asarray(x, dtype=float)
@@ -232,8 +233,10 @@ class IdentificadorANFIS:
             train_loss = 0.0
 
             idx = np.random.permutation(n_train)
-            for s in range(n_train):
-                i = idx[s]
+            bs = min(self.batch_size, n_train)
+            batch_idx = np.random.choice(n_train, bs, replace=False)
+            for s in range(bs):
+                i = batch_idx[s]
                 xi = X_tr[i]
                 if np.random.random() < 0.4:
                     xi = xi + np.random.randn(2) * self.noise_std
@@ -244,10 +247,11 @@ class IdentificadorANFIS:
             if (epoch + 1) % 20 == 0:
                 self._ajustar_consecuentes(X_tr, y_tr)
 
-            self.loss_history.append(train_loss / n_train)
+            self.loss_history.append(train_loss / bs)
 
+            n_vs = min(500, n_val)
             val_loss = 0.0
-            for i in range(n_val):
+            for i in range(n_vs):
                 out, _ = self._forward(X_val[i])
                 val_loss += np.sum((out - y_val[i]) ** 2)
             val_loss /= n_val
