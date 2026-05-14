@@ -19,3 +19,5 @@ __pycache__/
 # PDFs except the paper
 *.pdf
 !presentacion.pdf
+!poster.pdf
+!paper.pdf
