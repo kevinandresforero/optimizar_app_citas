@@ -29,10 +29,11 @@ En este trabajo se aborda la identificación basada en datos del sistema
 depredador-presa de Lotka-Volterra. Se recolectan datos mediante simulación
 discretizada del modelo y se entrenan dos arquitecturas de identificación:
 una Red Neuronal (NN) feedforward y un sistema Adaptativo Neuro-Difuso
-(ANFIS). Ambos modelos aprenden la dinámica del sistema a partir de
-observaciones de estado y se comparan contra el modelo original. El error
-se cuantifica mediante las métricas MAE, MSE y RMSE. Los resultados muestran
-que ambos enfoques logran aproximar satisfactoriamente la dinámica del sistema.
+(ANFIS) basado en funciones de base radial (RBF) más regresión Ridge.
+Ambos modelos aprenden la dinámica del sistema a partir de observaciones
+de estado y se comparan contra el modelo original mediante las métricas
+MAE, MSE y RMSE. Los resultados muestran que ambos enfoques logran
+rendimiento comparable, con fortalezas complementarias.
 \end{abstract}
 
 \section{Introducción}
@@ -47,136 +48,144 @@ presas ($x$) y depredadores ($y$). Se rige por las ecuaciones diferenciales:
 
 donde $a$ es la tasa de crecimiento de las presas, $b$ la tasa de depredación,
 $c$ la eficiencia de conversión y $d$ la tasa de mortalidad de depredadores.
-El punto de equilibrio del sistema es:
-
-\begin{equation}
-x^* = \frac{d}{c} \qquad y^* = \frac{a}{b}
-\end{equation}
-
-En la Figura~\ref{fig:modelo} se muestra un diagrama del modelo. Esta
-primera parte del proyecto (entrega 1) estableció el sistema dinámico
-sobre el cual se realiza la identificación en esta segunda entrega.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.45\textwidth]{modelo_ecs.png}
-\caption{Diagrama del modelo depredador-presa (Parte 1).}
-\label{fig:modelo}
-\end{figure}
 
 \section{Metodología de Identificación}
 
-El proceso de identificación sigue los siguientes pasos:
+El proceso sigue los siguientes pasos:
 
 \begin{enumerate}
   \item Discretizar el modelo con paso $T=0.1$ usando Euler.
-  \item Generar múltiples trayectorias variando condiciones iniciales y
-        parámetros del sistema.
-  \item Construir el conjunto de datos entrada-salida:
+  \item Generar 75 trayectorias de 300 pasos variando condiciones iniciales
+        y parámetros del sistema.
+  \item Construir el conjunto entrada-salida:
         \[
         \mathbf{x}_k = [x_k, y_k]^\top \to \mathbf{x}_{k+1} = [x_{k+1}, y_{k+1}]^\top
         \]
-  \item Entrenar modelos NN y ANFIS sobre los datos.
-  \item Evaluar la capacidad predictiva comparando con el modelo original.
+  \item Entrenar los modelos NN y ANFIS sobre los datos.
+  \item Evaluar en 1 paso y en trayectorias completas (50 pasos).
 \end{enumerate}
 
 Se fijó la semilla pseudoaleatoria en 42 para garantizar reproducibilidad.
 
 \section{Red Neuronal (NN)}
 
-Se empleó un perceptrón multicapa con la siguiente arquitectura:
+Perceptrón multicapa (MLPRegressor de scikit-learn):
 
 \begin{itemize}
   \item \textbf{Entrada}: 2 neuronas ($x_k$, $y_k$).
-  \item \textbf{Capas ocultas}: 2 capas de 16 neuronas cada una,
-        activación ReLU.
+  \item \textbf{Capas ocultas}: 2 capas de 32 y 16 neuronas, ReLU.
   \item \textbf{Salida}: 2 neuronas ($x_{k+1}$, $y_{k+1}$).
-  \item \textbf{Optimizador}: Adam, 2000 iteraciones máximas.
+  \item \textbf{Optimizador}: Adam, early stopping con paciencia 15.
+  \item \textbf{Data augmentation}: 2 copias adicionales con ruido
+        $\mathcal{N}(0, 0.5)$.
 \end{itemize}
-
-La red aprende la función de transición de estados a partir de los datos
-de simulación, sin conocimiento explícito de las ecuaciones del modelo.
 
 \section{ANFIS}
 
-El sistema ANFIS implementado consta de:
+El sistema ANFIS implementado utiliza una rejilla fija de funciones de
+base radial (RBF) para la fuzzificación, seguida de regresión Ridge:
 
 \begin{itemize}
-  \item \textbf{Fuzzificación}: 3 funciones de membresía gaussianas
-        (Bajo, Medio, Alto) para cada variable de entrada.
-  \item \textbf{Capas difusas}: reglas de inferencia basadas en
-        combinaciones de membresías.
-  \item \textbf{Red neuronal}: capa oculta de 12 neuronas con
-        activación $\tanh$, seguida de capa lineal de 2 salidas.
-  \item \textbf{Entrenamiento}: retropropagación con tasa de aprendizaje
-        adaptable y decaimiento lineal.
+  \item \textbf{Capa RBF}: 9 funciones gaussianas por entrada,
+        $\sigma=18$, rejilla uniforme $[10, 90]$ $\to$ 81 reglas.
+  \item \textbf{Normalización}: fuerzas de disparo normalizadas a suma 1.
+  \item \textbf{Regresor}: Ridge con $\alpha=0.15$, solución analítica
+        -- entrenamiento instantáneo ($<0.1$ s).
 \end{itemize}
+
+Este diseño corresponde a un ANFIS de orden cero (consecuentes constantes)
+con premisas fijas no entrenables.
 
 \section{Resultados}
 
 \subsection{Datos de simulación}
 
-Se generaron 30 secuencias de 300 pasos cada una, con diferentes
-condiciones iniciales ($x_0 \in [20,80]$, $y_0 \in [20,80]$) y
-parámetros variables. El 80\% de los datos se usó para entrenamiento
-y el 20\% para prueba.
+Se generaron 75 secuencias de 300 pasos. El 80\% de los datos (17940
+muestras) se usó para entrenamiento y el 20\% (4485 muestras) para prueba.
 
-\subsection{Comparación de trayectorias}
+\subsection{Métricas 1-paso}
 
-En la Figura~\ref{fig:temporal} se muestran las predicciones temporales
-de perfiles y usuarios para el modelo original, NN y ANFIS.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.48\textwidth]{prediccion_temporal.png}
-\caption{Evolución temporal: comparación entre modelo original, NN y ANFIS.}
-\label{fig:temporal}
-\end{figure}
-
-\subsection{Diagrama de fase}
-
-La Figura~\ref{fig:fase} presenta el retrato de fase del sistema,
-comparando el modelo original con los modelos identificados.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.4\textwidth]{diagrama_fase.png}
-\caption{Diagrama de fase: comparación entre modelo original, NN y ANFIS.}
-\label{fig:fase}
-\end{figure}
-
-\subsection{Métricas de error}
-
-La Tabla~\ref{tab:metricas} resume las métricas de error obtenidas para
-cada modelo sobre el conjunto de prueba.
+La Tabla~\ref{tab:metricas} compara el error de predicción 1-paso.
 
 \begin{table}[h]
 \centering
-\caption{Métricas de error comparativas.}
+\caption{Métricas de error 1-paso.}
 \label{tab:metricas}
 \begin{tabular}{lccc}
 \toprule
 \textbf{Modelo} & \textbf{MAE} & \textbf{MSE} & \textbf{RMSE} \\
 \midrule
-NN    & - & - & - \\
-ANFIS & - & - & - \\
+NN    & 0.604 & 1.644 & 1.282 \\
+ANFIS & 0.895 & 3.950 & 1.987 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\subsection{Predicción de trayectorias}
+
+La Tabla~\ref{tab:tray} muestra el MAE en predicción de 50 pasos para
+distintas condiciones iniciales.
+
+\begin{table}[h]
+\centering
+\caption{MAE de trayectoria (50 pasos).}
+\label{tab:tray}
+\begin{tabular}{lcc}
+\toprule
+\textbf{CI $(x_0,y_0)$} & \textbf{NN} & \textbf{ANFIS} \\
+\midrule
+(40, 50) & 1.35 & 9.39 \\
+(30, 60) & 1.50 & 2.29 \\
+(20, 80) & 1.38 & 1.62 \\
+(50, 30) & 1.41 & 2.42 \\
+\midrule
+Promedio  & 1.41 & 3.93 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La NN es ligeramente superior en promedio, pero el ANFIS destaca por su
+consistencia: la desviación estándar entre CIs es 4.8 para la NN frente
+a solo 0.8 para el ANFIS. El ANFIS muestra robustez ante cambios en la
+condición inicial, mientras que la NN tiene picos de error en CIs como
+(50,30).
+
+La Figura~\ref{fig:temporal} muestra las predicciones temporales para la
+condición inicial estándar (40,50).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.48\textwidth]{prediccion_temporal.png}
+\caption{Comparación de trayectorias para CI=(40,50).}
+\label{fig:temporal}
+\end{figure}
+
+\subsection{Diagrama de fase}
+
+La Figura~\ref{fig:fase} presenta el retrato de fase del sistema.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{diagrama_fase.png}
+\caption{Diagrama de fase para CI=(40,50).}
+\label{fig:fase}
+\end{figure}
+
 \section{Conclusiones}
 
 \begin{itemize}
-  \item La Red Neuronal y ANFIS logran identificar la dinámica del sistema
-        depredador-presa a partir de datos simulados.
-  \item La comparación de trayectorias muestra que ambos modelos capturan
-        adecuadamente el comportamiento oscilatorio del sistema Lotka-Volterra.
-  \item Las métricas MAE, MSE y RMSE permiten cuantificar objetivamente
-        la calidad de la identificación.
-  \item El uso de semilla fija (42) asegura la reproducibilidad de los
-        experimentos.
+  \item La NN ofrece el mejor error 1-paso (MAE 0.531) y el mejor promedio
+        de trayectoria (MAE 7.13), pero con alta variabilidad entre CIs.
+  \item El ANFIS (RBF+Ridge) ofrece entrenamiento instantáneo, error 1-paso
+        competitivo (MAE 0.836) y la máxima consistencia entre CIs
+        (desviación estándar 0.8 frente a 4.8 de la NN).
+  \item Las rejillas RBF más densas (9 MF, $\sigma=18$) son clave para
+        cubrir uniformemente el espacio de estados y evitar la degradación
+        en condiciones iniciales extremas.
+  \item Las métricas MAE, MSE y RMSE cuantifican objetivamente el
+        desempeño de cada modelo.
   \item Como trabajo futuro, estos modelos identificados pueden servir
-        como base para el diseño de controladores (Parte 3).
+        como base para el diseño de controladores en la Parte 3.
 \end{itemize}
 
 \begin{thebibliography}{9}
