@@ -150,6 +150,12 @@ Las ecuaciones análogas son: $\dot{u} = \alpha u - \beta um$, $\dot{m} = \gamma
 
 \section{Arquitectura de Identificación}
 
+La estructura del proyecto dentro del repositorio se divide en dos componentes principales:
+\begin{itemize}
+    \item \textbf{Jupyter Notebook (\texttt{identificacion\_system.ipynb}):} Ejecuta la generación de datos, entrenamiento de modelos, generación de gráficas y tablas de comparación. Es el archivo principal que corre el flujo completo del proyecto.
+    \item \textbf{Módulos Python (\texttt{simulacion.py}, \texttt{identificacion.py}):} Contienen las funciones y clases que implementan los modelos matemáticos y las arquitecturas de aprendizaje automático.
+\end{itemize}
+
 El módulo de identificación se encuentra en \texttt{identificacion.py} y contiene dos clases principales: \texttt{IdentificadorNN} y \texttt{IdentificadorANFIS}.
 
 \subsection{Modelo MLP (Red Neuronal)}
