@@ -25,10 +25,10 @@ def metricas(y_true, y_pred):
 # =====================================================================
 
 class IdentificadorNN:
-    def __init__(self, hidden_layer_sizes=(64, 64, 32), max_iter=3000,
+    def __init__(self, hidden_layer_sizes=(64, 64, 32), max_iter=5000,
                  random_state=42, alpha=0.0005, early_stopping=True,
-                 validation_fraction=0.1, n_iter_no_change=15,
-                 noise_std=1.0, n_augment=3):
+                 validation_fraction=0.1, n_iter_no_change=20,
+                 noise_std=1.0, n_augment=4):
         self.noise_std = noise_std
         self.n_augment = n_augment
         self.model = MLPRegressor(
@@ -83,8 +83,9 @@ class IdentificadorNN:
 # =====================================================================
 
 class IdentificadorANFIS:
-    def __init__(self, n_mf=4, lr=0.05, n_epochs=400, seed=42,
-                 reg_lambda=0.01, patience=20, val_fraction=0.1):
+    def __init__(self, n_mf=4, lr=0.001, n_epochs=500, seed=42,
+                 reg_lambda=0.01, patience=30, val_fraction=0.1,
+                 noise_std=0.3):
         self.n_mf = n_mf
         self.lr = lr
         self.n_epochs = n_epochs
@@ -116,6 +117,7 @@ class IdentificadorANFIS:
 
         self.loss_history = []
         self.val_loss_history = []
+        self.noise_std = noise_std
 
     def _compute_firing(self, x):
         x = np.asarray(x, dtype=float)
@@ -232,9 +234,12 @@ class IdentificadorANFIS:
             idx = np.random.permutation(n_train)
             for s in range(n_train):
                 i = idx[s]
-                out, w_norm = self._forward(X_tr[i])
+                xi = X_tr[i]
+                if np.random.random() < 0.4:
+                    xi = xi + np.random.randn(2) * self.noise_std
+                out, w_norm = self._forward(xi)
                 train_loss += np.sum((out - y_tr[i]) ** 2)
-                self._backward(X_tr[i], y_tr[i], out, w_norm, lr_cur)
+                self._backward(xi, y_tr[i], out, w_norm, lr_cur)
 
             if (epoch + 1) % 20 == 0:
                 self._ajustar_consecuentes(X_tr, y_tr)
