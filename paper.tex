@@ -1,0 +1,356 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\geometry{
+    left=0.75in,
+    right=0.75in,
+    top=0.75in,
+    bottom=0.75in
+}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=cyan,
+}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{codeblue}{rgb}{0,0,0.8}
+
+\lstdefinestyle{pythonstyle}{
+    backgroundcolor=\color{white},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    xleftmargin=2em,
+}
+
+\lstset{style=pythonstyle}
+
+\title{\LARGE\textbf{Modelamiento Predictivo del Sistema Presa-Depredador de Lotka-Volterra usando MLP y ANFIS}\thanks{Manuscrito generado para Cibernética III - Entrega Final Segundo Corte}}
+
+\author{
+\textbf{Emmanuel Guerrero Piza}$^{1}$, \textbf{Kevin Andrés Forero Guaitero}$^{2}$\\[4pt]
+$^{1}$Código: 202020039\\
+$^{2}$Código: 20181020120\\[4pt]
+Universidad Distrital Francisco José de Caldas, Bogotá, Colombia
+}
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+El presente trabajo aborda el problema de la identificación y predicción del sistema dinámico presa-depredador descrito por el modelo de Lotka-Volterra mediante técnicas de aprendizaje automático. Se implementan y comparan dos enfoques: una red neuronal multilayer perceptron (MLP) y un sistema de inferencia difusa adaptativo (ANFIS). Los resultados experimentales demuestran que el MLP supera al ANFIS en todas las métricas evaluadas, alcanzando un MAE de 0.604 en predicción de un paso y 1.41 en predicción multistep de 50 pasos.
+\end{abstract}
+
+\begin关键词}
+Lotka-Volterra, identificación de sistemas, red neuronal, ANFIS, predicción multistep, dinámica no lineal.
+\end{关键词}
+
+\section{Introducción}
+
+Los sistemas dinámicos no lineales constituyen una herramienta fundamental en el modelamiento de fenómenos biológicos, ecológicos y físicos. El modelo de Lotka-Volterra, propuesto independientemente por Alfred Lotka (1925) y Vito Volterra (1926), describe la interacción entre dos poblaciones biológicas en una relación depredador-presa \cite{lotka,volterra}. Este modelo captura la esencia de las oscilaciones cíclicas observadas en la naturaleza y constituye un caso de estudio clásico en teoría de sistemas dinámicos.
+
+La identificación de sistemas consiste en determinar un modelo matemático que represente el comportamiento de un sistema a partir de datos observados o simulados. El objetivo de este trabajo es comparar dos enfoques de modelamiento predictivo: MLP y ANFIS, aplicados a la predicción de la dinámica del sistema Lotka-Volterra.
+
+\section{Modelo Matemático}
+
+\subsection{Ecuaciones de Lotka-Volterra}
+
+El modelo Lotka-Volterra está definido por:
+
+\begin{equation}
+\dot{x} = ax - bxy, \quad \dot{y} = cxy - dy
+\end{equation}
+
+donde $x(t)$ es la población de presas, $y(t)$ es la población de depredadores, y los parámetros son: $a=0.3$, $b=0.006$, $c=0.018$, $d=0.7$.
+
+\subsection{Discretización con Euler}
+
+Para generar datos de entrenamiento, el sistema continuo se discretiza mediante el método de Euler con paso $T = 0.1$:
+
+\begin{align*}
+x_{k+1} &= x_k + T(a x_k - b x_k y_k)\\
+y_{k+1} &= y_k + T(c x_k y_k - d y_k)
+\end{align*}
+
+La implementación de esta simulación se encuentra en el archivo \texttt{simulacion.py}, función \texttt{simulate()}:
+
+\begin{lstlisting}[language=Python]
+def simulate(a, b, c, d, n_steps=800, x0=X0, y0=Y0):
+    x = np.zeros(n_steps)
+    y = np.zeros(n_steps)
+    x[0], y[0] = x0, y0
+    for k in range(n_steps - 1):
+        x[k + 1] = max(x[k] + DT * (a * x[k] - b * x[k] * y[k]), 0)
+        y[k + 1] = max(y[k] + DT * (c * x[k] * y[k] - d * y[k]), 0)
+    return x, y
+\end{lstlisting}
+
+La función \texttt{generar\_datos()} en el mismo archivo genera el dataset completo:
+
+\begin{lstlisting}[language=Python]
+def generar_datos(n_secuencias=20, n_steps=200, variar_params=True):
+    X_list, y_list = [], []
+    for i in range(n_secuencias):
+        if variar_params:
+            a = np.random.uniform(0.2, 0.5)
+            b = np.random.uniform(0.005, 0.02)
+            c = np.random.uniform(0.005, 0.03)
+            d = np.random.uniform(0.3, 0.7)
+        else:
+            a, b, c, d = 0.3, 0.006, 0.018, 0.7
+        x, y = simulate(a, b, c, d, n_steps, x0, y0)
+        for k in range(n_steps - 1):
+            X_list.append([x[k], y[k]])
+            y_list.append([x[k + 1], y[k + 1]])
+    return np.array(X_list), np.array(y_list), params_usados
+\end{lstlisting}
+
+\section{Isomorfismo: Aplicación de Citas}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{p{2.8cm}p{3.5cm}c}
+\toprule
+\textbf{Lotka-Volterra} & \textbf{App de Citas} & \textbf{Valor} \\
+\midrule
+Presas ($x$) & Usuarios activos & - \\
+Depredadores ($y$) & Matches inactivos & - \\
+$a$ & $\alpha$ (nuevos perfiles) & 0.5 \\
+$b$ & $\beta$ (match/salida) & 0.01 \\
+$c$ & $\gamma$ (abandono) & 0.2 \\
+$d$ & $\delta$ (eficiencia) & 0.005 \\
+\bottomrule
+\end{tabular}
+\caption{Isomorfismo entre el modelo biológico y la app de citas.}
+\label{tab:isomorfismo}
+\end{table}
+
+Las ecuaciones análogas son: $\dot{u} = \alpha u - \beta um$, $\dot{m} = \gamma um - \delta m$.
+
+\section{Arquitectura de Identificación}
+
+El módulo de identificación se encuentra en \texttt{identificacion.py} y contiene dos clases principales: \texttt{IdentificadorNN} y \texttt{IdentificadorANFIS}.
+
+\subsection{Modelo MLP (Red Neuronal)}
+
+La clase \texttt{IdentificadorNN} implementa una red neuronal multilayer perceptron usando scikit-learn:
+
+\begin{lstlisting}[language=Python]
+class IdentificadorNN:
+    def __init__(self, hidden_layer_sizes=(64, 64, 32), 
+                 max_iter=3000, random_state=42, alpha=0.001):
+        self.arch = hidden_layer_sizes
+        self.rs = random_state
+        self.alpha = alpha
+        self.max_iter = max_iter
+        self.model = None
+
+    def entrenar(self, X, y):
+        # Datos originales con ruido
+        X_aug = [X + np.random.randn(*X.shape) * 0.3]
+        
+        # Datos extra de trayectorias reales diversas
+        for _ in range(1500):
+            x0 = np.random.uniform(5, 95)
+            y0 = np.random.uniform(5, 95)
+            xr, yr = self._simular_trayectoria(x0, y0, 100)
+            # ... agregar datos
+        
+        self.model = MLPRegressor(
+            hidden_layer_sizes=self.arch,
+            activation='relu', solver='adam',
+            alpha=self.alpha, max_iter=self.max_iter,
+            random_state=self.rs, early_stopping=True,
+            validation_fraction=0.1, n_iter_no_change=15
+        ).fit(X_all, y_all)
+\end{lstlisting}
+
+\textbf{Arquitectura:}
+\begin{itemize}
+    \item \textbf{Capa de entrada:} 2 neuronas $(x_k, y_k)$
+    \item \textbf{Capas ocultas:} (64, 64, 32) neuronas con activación ReLU
+    \item \textbf{Capa de salida:} 2 neuronas $(x_{k+1}, y_{k+1})$
+    \item \textbf{Optimizador:} Adam con early stopping (paciencia 15 épocas)
+    \item \textbf{Entrenamiento:} 51 épocas
+\end{itemize}
+
+La función \texttt{predecir\_trayectoria()} permite predicción multistep:
+
+\begin{lstlisting}[language=Python]
+def predecir_trayectoria(self, x0, y0, n_steps=200):
+    x = np.zeros(n_steps)
+    y = np.zeros(n_steps)
+    x[0], y[0] = x0, y0
+    for k in range(n_steps - 1):
+        pred = self.model.predict([[x[k], y[k]]])[0]
+        x[k + 1] = max(pred[0], 0)
+        y[k + 1] = max(pred[1], 0)
+    return x, y
+\end{lstlisting}
+
+\subsection{Modelo ANFIS}
+
+La clase \texttt{IdentificadorANFIS} implementa un sistema de inferencia difusa adaptativo con funciones RBF gaussianas:
+
+\begin{lstlisting}[language=Python]
+_N_MF = 9
+_SIGMA = 18.0
+_CENTROS = np.array([np.linspace(10, 90, _N_MF), 
+                     np.linspace(10, 90, _N_MF)])
+_N_RULES = _N_MF ** 2  # 81 reglas
+
+def _rbf_transform(Z):
+    Phi = np.zeros((n, _N_RULES))
+    for i in range(n):
+        mu = np.zeros((2, _N_MF))
+        for j in range(2):
+            d = Z[i, j] - _CENTROS[j]
+            mu[j] = np.exp(-(d ** 2) / (2 * _SIGMA ** 2 + 1e-8))
+        w = np.ones(_N_RULES)
+        for r in range(_N_RULES):
+            for j in range(2):
+                w[r] *= mu[j, _RULE_IDX[r][j]]
+        Phi[i] = w / (np.sum(w) + 1e-8)
+    return Phi
+\end{lstlisting}
+
+\textbf{Arquitectura:}
+\begin{itemize}
+    \item \textbf{Funciones de membresía:} 9 gaussianas por entrada ($\sigma = 18$)
+    \item \textbf{Rejilla uniforme:} $[10,90] \times [10,90] \to 81$ reglas difusas
+    \item \textbf{Entrenamiento:} Regresión Ridge ($\alpha = 0.30$) - solución analítica
+\end{itemize}
+
+\begin{lstlisting}[language=Python]
+class IdentificadorANFIS:
+    def __init__(self, alpha=0.30, random_state=42):
+        self.alpha = alpha
+        self.rs = random_state
+
+    def entrenar(self, X, y):
+        # Datos extra de trayectorias reales
+        for _ in range(2000):
+            x0 = rng.uniform(5, 95)
+            # ... generar datos
+        
+        Phi_tr = _rbf_transform(X)
+        Phi_extra = _rbf_transform(X_extra)
+        Phi_all = np.vstack([Phi_tr, Phi_extra])
+        
+        self.model = Ridge(alpha=self.alpha)
+        self.model.fit(Phi_all, y_all)
+\end{lstlisting}
+
+\section{Resultados}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{datos_originales.png}
+\caption{Distribución de estados y trayectorias ejemplo.}
+\label{fig:datos}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Modelo} & \textbf{MAE} & \textbf{MSE} & \textbf{RMSE} \\
+\midrule
+MLP & 0.604 & 1.644 & 1.282 \\
+ANFIS & 0.898 & 3.816 & 1.953 \\
+\bottomrule
+\end{tabular}
+\caption{Métricas en predicción de un paso.}
+\label{tab:metricas}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{prediccion_temporal.png}
+\caption{Predicción temporal a 200 pasos.}
+\label{fig:prediccion}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+%\includegraphics[width=0.35\textwidth]{diagrama_fase.png}
+\caption{Diagrama de fases: ciclo límite.}
+\label{fig:fase}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{CI} & \textbf{MLP} & \textbf{ANFIS} \\
+\midrule
+(40, 50) & 1.35 & 9.46 \\
+(30, 60) & 1.50 & 2.23 \\
+(20, 80) & 1.38 & 1.67 \\
+(50, 30) & 1.41 & 2.43 \\
+\midrule
+\textbf{Promedio} & \textbf{1.41} & \textbf{3.95} \\
+\bottomrule
+\end{tabular}
+\caption{MAE en trayectorias a 50 pasos.}
+\label{tab:trayectorias}
+\end{table}
+
+El MLP supera al ANFIS con 33\% menos MAE (Tabla \ref{tab:metricas}) y 64\% menos en predicción multistep (Tabla \ref{tab:trayectorias}).
+
+\section{Conclusiones}
+
+\begin{enumerate}
+    \item El MLP supera al ANFIS en todas las métricas evaluadas.
+    \item El data augmentation mejora significativamente la generalización.
+    \item ANFIS ofrece entrenamiento instantáneo (solución analítica) pero menor precisión.
+    \item Limitación: modelo Lotka-Volterra sin capacidad de carga.
+    \item Trabajo futuro: explorar arquitecturas LSTM/GRU para predicción de largo plazo.
+\end{enumerate}
+
+\section{Repositorio}
+
+Código disponible en: \url{https://github.com/kevinandresforero/optimizar_app_citas/tree/main}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.12\textwidth]{qr-code.png}
+\caption{QR al repositorio: \url{https://github.com/kevinandresforero/optimizar_app_citas/tree/main}}
+\end{figure}
+
+\begin{thebibliography}{1}
+
+bibitem{lotka} A. J. Lotka, \textit{Elements of physical biology}. Williams and Wilkins, 1925.
+
+bibitem{volterra} V. Volterra, \textit{Variazioni e fluttuazioni del numero d'individui in specie animali conviventi}. Mem. Accad. Naz. Lincei, vol. 2, pp. 31-113, 1926.
+
+bibitem{jang} J.-S. R. Jang, ``ANFIS: Adaptive-Network-Based Fuzzy Inference System,'' \textit{IEEE Trans. Syst., Man, Cybern.}, vol. 23, no. 3, pp. 665-685, 1993.
+
+bibitem{bishop} C. M. Bishop, \textit{Pattern Recognition and Machine Learning}. Springer, 2006.
+
+bibitem{haykin} S. Haykin, \textit{Neural Networks: A Comprehensive Foundation}. Prentice Hall, 1999.
+
+\end{thebibliography}
+
+\end{document}
