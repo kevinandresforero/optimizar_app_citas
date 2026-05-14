@@ -1,78 +1,39 @@
-# Dating App Optimization — Predator-Prey Model (Lotka-Volterra)
+# Identificación del Sistema Depredador-Presa — NN y ANFIS
 
-Nonlinear optimization of a dating app using the Lotka-Volterra model with 3 optimizers. Balances algorithm efficiency, user retention, and profile growth to maximize profitability while maintaining a stable equilibrium.
+Segunda parte del proyecto de Cibernética III. Identificación basada en datos del modelo Lotka-Volterra usando Redes Neuronales (NN) y ANFIS.
 
-## Main files
+## Archivos
 
-| File | Description |
-|------|-------------|
-| `optimizar_app_citas.py` | `DatingAppOptimizer` class (DE + L-BFGS-B) |
-| `optimizadores.py` | 3 optimizers: DE, SGD, ANFIS with unified interface |
-| `comparacion_escenarios.ipynb` | Notebook: 4 app stages (new, growing, established, massive) |
-| `comparativa_3_optimizadores.ipynb` | Notebook: 3-optimizer comparison |
-| `presentacion.tex` | Beamer presentation (29 slides, 16:9) |
+| Archivo | Descripción |
+|---------|-------------|
+| `simulacion.py` | Generación de datos por simulación del modelo Lotka-Volterra |
+| `identificacion.py` | Clases `IdentificadorNN` y `IdentificadorANFIS` para identificación de sistema |
+| `identificacion_sistema.ipynb` | Notebook principal: genera datos, entrena modelos, compara y calcula métricas |
+| `presentacion.tex` | Paper en formato artículo |
+| `Proyecto_2__ciber_3.pdf` | Enunciado de la parte 2 |
 
-## System equations
+## Requisitos
 
 ```
-ẋ = a·x − b·x·y    (profiles / potential matches)
-ẏ = c·x·y − d·y    (active users)
+pip install -r requirements.txt
 ```
 
-**Equilibrium point:** `x* = d/c`, `y* = a/b`
+## Reproducibilidad
 
-**Model parameters:**
+Todos los experimentos usan semilla fija (`seed=42`) para garantizar resultados reproducibles.
 
-| Parameter | Name | Meaning |
-|-----------|------|---------|
-| `a` | alpha (α) | Profile growth rate (new registrations) |
-| `b` | beta (β) | Match rate (user interaction) |
-| `c` | delta (δ) | Algorithm matching efficiency |
-| `d` | gamma (γ) | User abandonment rate (churn) |
-
-## Optimizers
-
-### 1. Differential Evolution + L-BFGS-B (`DifferentialEvolutionOptimizer`)
-- Global evolutionary search with population of 50, 1500 generations
-- Local refinement with L-BFGS-B
-- **Cost:** –27.95 (best), **CV:** 0.103, **Revenue:** \$70.60/month
-
-### 2. SGD (`SGDOptimizer`)
-- Gradient approximated by finite differences with momentum (0.85)
-- Grid of >50 starting points + random restarts
-- **Cost:** –25.34, **CV:** 0.041 (most stable), **Revenue:** \$61.72/month
-
-### 3. ANFIS (`ANFISOptimizer`)
-- Fuzzification with 3 Gaussian membership functions per parameter
-- Feedforward neural network (12→16→4)
-- **Cost:** –12.11, **Retention:** 76.4% (best), **Time:** 0.5s (fastest)
-
-## Comparison metrics
-
-| Metric | Measures | Optimal direction |
-|--------|----------|-----------------|
-| Cost (J) | Multi-objective objective function | More negative |
-| CV | Coefficient of variation (stability) | Lower (<0.3) |
-| Retention | `e^{-d}` (users who don't churn) | Higher |
-| Revenue | Estimated income in \$/month | Higher |
-| Time | Execution time in seconds | Lower |
-
-## Setup and usage
+## Uso
 
 ```bash
-pip install -r requirements.txt
+jupyter notebook identificacion_sistema.ipynb
 
-# DatingAppOptimizer class
-python optimizar_app_citas.py
-
-# Notebooks
-jupyter notebook comparacion_escenarios.ipynb
-jupyter notebook comparativa_3_optimizadores.ipynb
-
-# Compile presentation
+# Compilar paper
+pdflatex presentacion.tex
 pdflatex presentacion.tex
 ```
 
-## Stack
+## Métricas de error
 
-Python, NumPy, SciPy, Matplotlib, LaTeX (Beamer).
+- MAE (Mean Absolute Error)
+- MSE (Mean Squared Error)
+- RMSE (Root Mean Squared Error)

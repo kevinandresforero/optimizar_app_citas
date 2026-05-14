@@ -1,7 +1,0 @@
-\beamer@sectionintoc {1}{Definición del problema}{3}{0}{1}
-\beamer@sectionintoc {2}{Optimizadores}{10}{0}{2}
-\beamer@sectionintoc {3}{Optimizador 1: Differential Evolution}{11}{0}{3}
-\beamer@sectionintoc {4}{Optimizador 2: SGD}{16}{0}{4}
-\beamer@sectionintoc {5}{Optimizador 3: ANFIS}{18}{0}{5}
-\beamer@sectionintoc {6}{Comparaciones}{20}{0}{6}
-\beamer@sectionintoc {7}{Conclusiones}{27}{0}{7}
