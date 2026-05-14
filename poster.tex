@@ -1,0 +1,237 @@
+\documentclass[final]{beamer}
+  \mode<presentation> {
+    \usetheme{Warsaw}
+  }
+  \usepackage[utf8]{inputenc}
+  \usepackage[spanish]{babel}
+  \usepackage{amsmath,amsthm, amssymb, latexsym}
+  \usepackage{graphicx}
+  \usepackage{tikz}
+  \usepackage{lipsum}
+  \usepackage{booktabs}
+  \usepackage{colortbl}
+  \usepackage{tabularx}
+\usepackage{array}
+
+  \usepackage[orientation=portrait,size=a0,scale=1.4]{beamerposter}
+
+  \setbeamertemplate{blocks}[rounded][shadow=true]
+
+  \definecolor{prune}{RGB}{99,0,60}
+  \setbeamercolor{structure}{fg=prune}
+
+  \title[\huge Modelamiento predictivo Lotka-Volterra]{%
+    \huge Modelamiento predictivo del sistema\\presa-depredador de Lotka-Volterra\\usando MLP y ANFIS}
+  \author{Emmanuel Guerrero Piza (202020039) \\ Kevin Andrés Forero Guaitero (20181020120)}
+  \institute[]{Universidad Distrital Francisco José de Caldas\\Bogotá, Colombia}
+
+\begin{document}
+
+\begin{frame}[fragile]{}
+\begin{columns}
+    \begin{column}{0.12\textwidth}
+        \begin{figure}
+        \centering
+        \includegraphics[width=0.9\linewidth]{ud.png}
+        \end{figure}
+    \end{column}
+    \begin{column}{0.76\textwidth}
+        \centering
+        \vspace{0.6cm}
+        {\Large\textbf Cibernética III \quad|\quad Entrega Final - Segundo Corte}
+        \vspace{0.3cm}
+
+        {\Large\bfseries Modelamiento predictivo del sistema\\presa-depredador de Lotka-Volterra\\usando MLP y ANFIS}
+        \vspace{0.3cm}
+
+        {\large Emmanuel Guerrero Piza (202020039) \quad|\quad Kevin Andrés Forero Guaitero (20181020120)} \\
+        {\large Universidad Distrital Francisco José de Caldas}
+    \end{column}
+    \begin{column}{0.12\textwidth}
+        \begin{figure}
+        \centering
+        \includegraphics[width=0.85\linewidth]{qr-code.png}
+        \caption{Link del repositorio}
+        \end{figure}
+    \end{column}
+\end{columns}
+
+\vspace{0.5cm}
+
+\begin{columns}
+    \begin{column}{.46\textwidth}
+
+    \begin{block}{Planteamiento del Problema}
+    \textbf{¿Cómo predecir la dinámica de sistemas presa-depredador?}
+    \begin{itemize}
+    \item Los sistemas dinámicos no lineales como Lotka-Volterra son difíciles de predecir analíticamente
+    \item La identificación de sistemas permite aproximar su comportamiento mediante modelos
+    \item La predicción multistep es relevante en ecología matemática y control de poblaciones
+    \item Se comparan dos enfoques: redes neuronales (MLP) y sistemas de inferencia difusa (ANFIS)
+    \end{itemize}
+    \end{block}
+
+    \vspace{0.6cm}
+
+    \begin{block}{Modelo Matemático - Lotka-Volterra}
+    Sistema de ecuaciones diferenciales ordinarias:
+    \[
+    \dot{x} = ax - bxy \quad\quad \dot{y} = cxy - dy
+    \]
+    \begin{center}
+    \begin{tabular}{ll}
+    \toprule
+    \textbf{Variable/Parám.} & \textbf{Descripción} \\
+    \midrule
+    $x(t)$ & Población de presas \\
+    $y(t)$ & Población de depredadores \\
+    $a$ & Tasa de crecimiento de presas \\
+    $b$ & Tasa de predación (captura) \\
+    $c$ & Tasa de conversión de presas a depredadores \\
+    $d$ & Tasa de mortalidad de depredadores \\
+    \bottomrule
+    \end{tabular}
+    \end{center}
+    \textbf{Discretización:} Método de Euler con $T=0.1$
+    \end{block}
+
+    \vspace{0.6cm}
+
+    \begin{block}{Isomorfismo: Red Social / App de Citas}
+    \centering
+    \normalsize
+    \setlength{\tabcolsep}{3pt}
+    \renewcommand{\arraystretch}{1.1}
+
+    \begin{tabularx}{\linewidth}{@{}p{0.33\linewidth} p{0.33\linewidth} p{0.33\linewidth}@{}}
+    \toprule
+    \textbf{Lotka-Volterra} & \textbf{App de Citas} & \textbf{Valor} \\
+    \midrule
+    Presas ($x$) & Usuarios activos & -- \\
+    Depredadores ($y$) & Matches inactivos & -- \\
+    $a$ & $\alpha$ (nuevos perfiles) & 0.5 \\
+    $b$ & $\beta$ (match/salida) & 0.01 \\
+    $c$ & $\gamma$ (abandono) & 0.2 \\
+    $d$ & $\delta$ (eficiencia) & 0.005 \\
+    \bottomrule
+    \end{tabularx}
+
+    \end{block}
+
+    \vspace{0.6cm}
+
+    \begin{block}{Arquitectura MLP (Red Neuronal)}
+    \begin{itemize}
+    \item \textbf{Arquitectura:} 2 entradas $\to$ (64, 64, 32) $\to$ 2 salidas
+    \item \textbf{Activación:} ReLU en capas ocultas
+    \item \textbf{Optimizador:} Adam con early stopping
+    \item \textbf{Épocas:} 51 (con parada temprana)
+    \end{itemize}
+    \end{block}
+
+    \vspace{0.6cm}
+
+    \begin{block}{Arquitectura ANFIS}
+    \begin{itemize}
+    \item \textbf{Funciones de membresía:} 9 gaussianas por entrada ($\sigma=18$)
+    \item \textbf{Rejilla uniforme:} $[10,90]$ $\to$ 81 reglas difusas
+    \item \textbf{Regresión:} Ridge ($\alpha=0.30$) - solución analítica instantánea
+    \end{itemize}
+    \end{block}
+
+    \vspace{0.4cm}
+
+    \begin{block}{Datos de Entrenamiento}
+    \begin{figure}
+    \centering
+    \includegraphics[width=0.95\textwidth]{datos_originales.png}
+    \caption{Distribución de estados y trayectorias ejemplo}
+    \end{figure}
+    \end{block}
+
+    \end{column}
+
+    \begin{column}{.46\textwidth}
+
+    \begin{block}{Resultados - Métricas 1-paso}
+    \begin{center}
+    \begin{tabular}{lccc}
+    \toprule
+    \textbf{Modelo} & \textbf{MAE} & \textbf{MSE} & \textbf{RMSE} \\
+    \midrule
+    MLP & 0.604 & 1.644 & 1.282 \\
+    ANFIS & 0.898 & 3.816 & 1.953 \\
+    \bottomrule
+    \end{tabular}
+    \end{center}
+    \smallskip
+    \textit{El MLP supera a ANFIS en todas las métricas, con MAE $\approx$33\% menor}
+    \end{block}
+
+    \vspace{0.6cm}
+
+    \begin{block}{Predicción Temporal (200 pasos)}
+    \begin{figure}
+    \centering
+    \includegraphics[width=0.95\textwidth]{prediccion_temporal.png}
+    \caption{Evolución temporal: Original vs MLP vs ANFIS}
+    \end{figure}
+    \end{block}
+
+    \vspace{0.6cm}
+
+    \begin{block}{Trayectorias - MAE a 50 pasos}
+    \begin{center}
+    \begin{tabular}{lcc}
+    \toprule
+    \textbf{CI $(x_0,y_0)$} & \textbf{MLP} & \textbf{ANFIS} \\
+    \midrule
+    (40, 50) & 1.35 & 9.46 \\
+    (30, 60) & 1.50 & 2.23 \\
+    (20, 80) & 1.38 & 1.67 \\
+    (50, 30) & 1.41 & 2.43 \\
+    \midrule
+    \textbf{Promedio} & \textbf{1.41} & 3.95 \\
+    \bottomrule
+    \end{tabular}
+    \end{center}
+    \smallskip
+    \textit{MLP reduce el error promedio en 64\% vs ANFIS}
+    \end{block}
+
+    \vspace{0.6cm}
+
+    \begin{block}{Diagrama de Fase}
+    \begin{figure}
+    \centering
+    \includegraphics[width=0.85\textwidth]{diagrama_fase.png}
+    \caption{Espacio de fases: ciclo límite preservado por ambos modelos}
+    \end{figure}
+    \end{block}
+
+    \vspace{0.6cm}
+
+    \begin{alertblock}{Conclusiones}
+    \begin{itemize}
+    \item \textbf{MLP:} Excelente rendimiento en predicción multistep (MAE$\approx$1.4), captura la dinámica del ciclo límite
+    \item \textbf{ANFIS:} Entrenamiento instantáneo pero menor precisión en horizontes largos
+    \item \textbf{Data augmentation:} Clave para generalización a condiciones iniciales diversas
+    \end{itemize}
+    \end{alertblock}
+
+    \vspace{0.6cm}
+
+    \begin{block}{Referencias}
+    \begin{enumerate}
+    \item Lotka, A.J. \textit{Elements of physical biology}, 1925
+    \item Volterra, V. \textit{Variazioni e fluttuazioni}, 1926
+    \item Jang, J.-S.R. \textit{ANFIS: Adaptive-Network-Based Fuzzy Inference System}, IEEE Trans., 1993
+    \item Bishop, C.M. \textit{Pattern Recognition and Machine Learning}, 2006
+    \end{enumerate}
+    \end{block}
+
+    \end{column}
+\end{columns}
+
+\end{frame}
+\end{document}
