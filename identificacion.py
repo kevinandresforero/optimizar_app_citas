@@ -84,7 +84,8 @@ class IdentificadorNN:
 
 class IdentificadorANFIS:
     def __init__(self, n_mf=4, lr=0.05, n_epochs=400, seed=42,
-                 reg_lambda=0.01, patience=20, val_fraction=0.1):
+                 reg_lambda=0.01, patience=20, val_fraction=0.1,
+                 batch_size=2000):
         self.n_mf = n_mf
         self.lr = lr
         self.n_epochs = n_epochs
@@ -225,28 +226,31 @@ class IdentificadorANFIS:
         best_conseq = self.conseq.copy()
         wait = 0
 
+        # Mini-batch: use batch_size random samples per epoch for GD
+        bs = min(self.batch_size, n_train)
+
         for epoch in range(self.n_epochs):
             lr_cur = self.lr * (1 - epoch / self.n_epochs)
             train_loss = 0.0
 
-            idx = np.random.permutation(n_train)
-            for s in range(n_train):
+            idx = np.random.choice(n_train, bs, replace=False)
+            for s in range(bs):
                 i = idx[s]
-                xi = X_tr[i]
-                out, w_norm = self._forward(xi)
+                out, w_norm = self._forward(X_tr[i])
                 train_loss += np.sum((out - y_tr[i]) ** 2)
-                self._backward(xi, y_tr[i], out, w_norm, lr_cur)
+                self._backward(X_tr[i], y_tr[i], out, w_norm, lr_cur)
 
             if (epoch + 1) % 20 == 0:
                 self._ajustar_consecuentes(X_tr, y_tr)
 
-            self.loss_history.append(train_loss / n_train)
+            self.loss_history.append(train_loss / bs)
 
             val_loss = 0.0
-            for i in range(n_val):
+            n_vs = min(500, n_val)
+            for i in range(n_vs):
                 out, _ = self._forward(X_val[i])
                 val_loss += np.sum((out - y_val[i]) ** 2)
-            val_loss /= n_val
+            val_loss /= n_vs
             self.val_loss_history.append(val_loss)
 
             if val_loss < best_val_loss - 1e-6:
