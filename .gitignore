@@ -19,4 +19,3 @@ __pycache__/
 # PDFs except the paper
 *.pdf
 !presentacion.pdf
-!Proyecto_2__ciber_3.pdf
