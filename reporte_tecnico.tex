@@ -1,0 +1,129 @@
+\documentclass[twocolumn,10pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\geometry{left=1.8cm, right=1.8cm, top=2cm, bottom=2cm}
+\setlength{\columnsep}{0.6cm}
+
+\hypersetup{colorlinks=true, urlcolor=blue, linkcolor=black}
+
+\title{\textbf{Control Predictivo Basado en Modelo (MPC)} \\
+       \large{para un Sistema Depredador-Presa Aplicado a una App de Citas}}
+\author{Emmanuel Guerrero Piza, Kevin Andr\'es Forero Guaitero \\
+        \small Cibern\'etica III --- Universidad Distrital}
+\date{\small 2026-1}
+
+\begin{document}
+\twocolumn[
+  \maketitle
+  \thispagestyle{empty}
+]
+
+\section{Modelo del sistema}
+
+Se modela una aplicaci\'on de citas mediante el sistema Lotka-Volterra:
+\begin{align}
+  \dot{x} &= a\,x - b\,x\,y \label{eq:prey} \\
+  \dot{y} &= c\,x\,y - d\,y \label{eq:pred}
+\end{align}
+donde $x(t)$ son los perfiles disponibles (presa), $y(t)$ son los usuarios activos (depredador), y los par\'ametros son:
+$a$ (tasa de crecimiento de perfiles), $b$ (tasa de match),
+$c$ (eficiencia del algoritmo), $d$ (tasa de abandono).
+
+El punto de equilibrio no trivial es:
+\begin{equation}
+  x^* = \frac{d}{c}, \qquad y^* = \frac{a}{b}
+\end{equation}
+
+\noindent La discretizaci\'on se realiza con Euler hacia adelante ($\Delta t = 0.1$):
+\begin{align}
+  x_{k+1} &= x_k + \Delta t\,(a\,x_k - b\,x_k\,y_k) \\
+  y_{k+1} &= y_k + \Delta t\,(c\,x_k\,y_k - d\,y_k)
+\end{align}
+Los par\'ametros \'optimos obtenidos en la Parte~2 son:
+$a=0.291$, $b=0.0055$, $c=0.0179$, $d=0.700$.
+
+\section{Objetivo de control}
+
+El sistema es estable alrededor del equilibrio, por lo que se plantea un problema de \textbf{seguimiento de referencia} (tracking). El controlador debe llevar los estados $(x,y)$ a un punto de operaci\'on deseado $(x_{\text{ref}}, y_{\text{ref}})$ y mantenerlos all\'i, respetando las restricciones f\'isicas de los par\'ametros de control.
+
+Se evalu\'o el desempe\~no en tres escenarios:
+\begin{enumerate}
+  \item \textbf{Referencia constante:} partir de $(40,50)$ y alcanzar $(35,55)$.
+  \item \textbf{Cambio escal\'on:} cambiar la referencia de $(35,55)$ a $(30,58)$ en $t=10$.
+  \item \textbf{Rechazo a perturbaciones:} aplicar un pulso de $+\!15$ en perfiles y retornar a $(35,55)$.
+\end{enumerate}
+
+\section{Dise\~no del controlador MPC}
+
+\paragraph{Modelo interno:} Se utiliza el modelo no lineal completo~(\ref{eq:prey})-(\ref{eq:pred}) para la predicci\'on.
+
+\paragraph{Horizontes:} predicci\'on $N=15$, control $M=10$ (con retenci\'on de orden cero despu\'es de $M$).
+
+\paragraph{Funci\'on de costo:}
+\begin{equation}
+  J = \sum_{k=0}^{N-1} \Bigl[ \|\mathbf{x}_{k+1}\!-\!\mathbf{x}_{\text{ref}}\|_Q^2
+      + \|\mathbf{u}_k\!-\!\mathbf{u}_{\text{ref}}\|_R^2 \Bigr]
+\end{equation}
+con $\mathbf{x}=[x,y]^T$, $\mathbf{u}=[a,c,d]^T$,
+\begin{equation}
+  Q = \begin{bmatrix}1 & 0 \\ 0 & 1\end{bmatrix},\qquad
+  R = \begin{bmatrix}0.1 & 0 & 0 \\
+                      0 & 0.1 & 0 \\
+                      0 & 0 & 0.1\end{bmatrix}
+\end{equation}
+
+\paragraph{Restricciones:}
+\begin{align}
+  0.2 &\le a \le 1.0, &
+  0.002 &\le c \le 0.04, &
+  0.1 &\le d \le 0.7
+\end{align}
+
+\paragraph{Solver:} \texttt{SCIPY.optimize.minimize} con método SLSQP. Se utiliza \textit{warm-start} (soluci\'on del paso anterior desplazada) para acelerar la convergencia.
+
+\paragraph{Referencia de control:} Para un $\mathbf{x}_{\text{ref}}$ dado, el control en estado estacionario es:
+\begin{equation}
+  a_{\text{ref}} = b\,y_{\text{ref}},\quad
+  c_{\text{ref}} = 0.0179,\quad
+  d_{\text{ref}} = c_{\text{ref}}\,x_{\text{ref}}
+\end{equation}
+
+\section{Resultados}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{mpc_escenario1.png}
+  \caption{Escenario~1: seguimiento de referencia constante $(35,55)$.}
+  \label{fig:esc1}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{mpc_escenario2.png}
+  \caption{Escenario~2: cambio escal\'on de referencia en $t=10$.}
+  \label{fig:esc2}
+\end{figure}
+
+En la Fig.~\ref{fig:esc1} se observa la convergencia de los estados desde $(40,50)$ hasta $(35,55)$ en aproximadamente 20 pasos de simulaci\'on, con se\~nales de control suaves que se mantienen dentro de las cotas. El solver alcanz\'o el 100\% de \'exito en todas las iteraciones.
+
+La Fig.~\ref{fig:esc2} muestra la respuesta ante un cambio escal\'on de referencia en $t=10$. El MPC se adapta r\'apidamente y lleva el sistema al nuevo punto de operaci\'on $(30,58)$ sin violar las restricciones.
+
+En el escenario de perturbaci\'on (no mostrado), un pulso de $+\!15$ en los perfiles es rechazado completamente, retornando al punto de referencia en $\sim$30 pasos.
+
+En todos los casos, las restricciones sobre las entradas de control fueron respetadas en todo momento (l\'ineas punteadas en las figuras).
+
+\section{Conclusiones}
+
+Se implement\'o un controlador MPC no lineal para el sistema Lotka-Volterra de una aplicaci\'on de citas. El controlador logra seguimiento de referencia con error pr\'acticamente nulo y rechaza perturbaciones externas, todo dentro de las cotas operativas. El solver SLSQP con \textit{warm-start} demostr\'o ser robusto, con 100\% de convergencia exitosa.
+
+\end{document}
