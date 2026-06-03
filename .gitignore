@@ -13,11 +13,17 @@ __pycache__/
 *.fdb_latexmk
 *.synctex.gz
 
+*.png
+!comparativa_escenario1.png
+!comparativa_escenario2.png
+!comparativa_escenario3.png
+!comparativa_escenario4.png
+!comparativa_escenario1-4.png
+!mpc_escenario1.png
+!mpc_escenario2.png
+!mpc_escenario3.png
+!reporte_figura.png
+
 *.pdf
 !reporte_tecnico.pdf
 !Proyecto_parte_3__ciber_3_2026_1.pdf
-
-*.png
-!reporte_figura.png
-!comparativa_escenario1-4.png
-!mpc_escenario1.png
