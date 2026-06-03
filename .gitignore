@@ -25,6 +25,7 @@ __pycache__/
 !reporte_figura.png
 !fig_mpc_estructura.png
 !fig_comparativa_estocastica.png
+!fig_comparativa_4escenarios.png
 
 *.pdf
 !reporte_tecnico.pdf

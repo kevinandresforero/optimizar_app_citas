@@ -159,22 +159,21 @@ referencia. En (c), $a\to a_{\text{ref}}=0.30$, $d\to d_{\text{ref}}
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.82\linewidth]{fig_comparativa_estocastica.png}
-  \caption{Comparativa estoc\'astica (Esc.~4, 500~pasos). (a) Sin
-           control: estados fluct\'uan alrededor del equilibrio natural.
-           (b) Con MPC: el controlador mantiene la referencia. (c)
-           Error RMS: mejora $12\times$ ($x$) y $47\times$ ($y$).}
+  \includegraphics[width=0.82\linewidth]{fig_comparativa_4escenarios.png}
+  \caption{Comparativa por escenario (sin control en transparencia,
+           con MPC en trazo intenso). Cada panel muestra un escenario
+           de la Tabla~\ref{tab:esc}. Las figuras individuales
+           \texttt{comparativa\_escenario1--4.png} ampl\'ian cada caso.}
   \label{fig:comp}
 \end{figure}
 
-La Fig.~\ref{fig:comp} compara el sistema sin control frente al MPC.
-Sin control los estados oscilan $\pm30$~uds.; con MPC se mantienen
-cerca de $(35,55)$. El error RMS pasa de $7.19\to0.61$ ($12\times$)
-en $x$ y de $14.48\to0.31$ ($47\times$) en $y$.
-
-La Tabla~\ref{tab:rms} extiende a los cuatro escenarios
-($\sigma \!=\! \sqrt{\tfrac{1}{N}\!\sum (x_k\!-\!x_{\text{ref}})^2}$,
-ventana estacionaria post-transitorio).
+La Fig.~\ref{fig:comp} muestra la comparativa sin control frente al
+MPC para los cuatro escenarios. Sin control, el sistema oscila
+alrededor del equilibrio natural ($\pm30$~uds.) sin poder seguir
+referencias. Con MPC, los estados se mantienen en la referencia
+deseada pese al ruido y pulsos. La Tabla~\ref{tab:rms} cuantifica
+la mejora ($\sigma \!=\! \sqrt{\tfrac{1}{N}\!\sum (x_k\!-\!
+x_{\text{ref}})^2}$, ventana estacionaria post-transitorio).
 
 \begin{table}[t]
 \centering\footnotesize
@@ -200,8 +199,8 @@ ventana estacionaria post-transitorio).
 \end{table}
 
 En todos los escenarios las restricciones $a\in[0.2,1.0]$,
-$c\in[0.002,0.04]$, $d\in[0.1,0.7]$ se respetaron (ver
-Fig.~\ref{fig:mpc}c).
+$c\in[0.002,0.04]$, $d\in[0.1,0.7]$ se respetaron
+(ver cotas en Fig.~\ref{fig:mpc}c).
 
 % ======================================================================
 \section{Conclusiones}
@@ -228,7 +227,7 @@ Robustez ruido & Fig.~\ref{fig:comp}, Tabla~\ref{tab:rms} & $5\times$--$47\times
 \normalsize
 
 El MPC no lineal cumple todos los requisitos: seguimiento
-(Fig.~\ref{fig:mpc}), rechazo a perturbaciones y robustez
-estoc\'astica (Fig.~\ref{fig:comp}), con respeto de restricciones.
+(Fig.~\ref{fig:mpc}) y robustez estoc\'astica en 4 escenarios
+(Fig.~\ref{fig:comp}), con respeto de restricciones.
 
 \end{document}
