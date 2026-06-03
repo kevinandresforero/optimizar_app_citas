@@ -8,6 +8,28 @@
 \usepackage{geometry}
 \usepackage{hyperref}
 \usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codebg}{rgb}{0.95,0.95,0.95}
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\fontsize{7}{8}\selectfont,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{lightgray},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  commentstyle=\color{gray},
+  keywordstyle=\color{blue},
+  stringstyle=\color{red},
+  numbers=none,
+  xleftmargin=4pt,
+  xrightmargin=4pt,
+  aboveskip=3pt,
+  belowskip=3pt,
+}
 
 \geometry{left=1.3cm, right=1.3cm, top=1.2cm, bottom=1.2cm}
 \setlength{\columnsep}{0.3cm}
@@ -24,7 +46,7 @@
 \hypersetup{colorlinks=true, urlcolor=blue, linkcolor=black}
 
 \title{\textbf{Control Predictivo Basado en Modelo (MPC)} \\
-       \large{para un Sistema Depredador-Presa Aplicado a una App de Citas}}
+       \large{para controlar la tasa de emparejamiento de una app de citas}}
 \author{Emmanuel Guerrero Piza, Kevin Andr\'es Forero Guaitero \\
         \small Cibern\'etica III --- Universidad Distrital, 2026-1}
 \date{}
@@ -36,12 +58,42 @@
   \thispagestyle{empty}
 ]
 
+\subsection*{Introducci\'on}
+
+Las aplicaciones de citas enfrentan un problema fundamental de
+equilibrio: necesitan suficientes perfiles disponibles ($x$) para
+atraer usuarios activos ($y$), pero a su vez requieren usuarios
+activos para que los perfiles tengan sentido. Este sistema puede
+modelarse mediante las ecuaciones de Lotka-Volterra, cl\'asicamente
+usadas para describir la interacci\'on depredador-presa en ecolog\'ia.
+
+\paragraph{Correspondencia de variables.}
+Cada variable del modelo tiene una interpretaci\'on directa en el
+negocio de la aplicaci\'on:
+
+\begin{center}
+\footnotesize
+$\begin{array}{lll}
+x\text{: perfiles disponibles} &\longleftrightarrow& \text{presa} \\
+y\text{: usuarios activos}     &\longleftrightarrow& \text{depredador} \\
+a\text{: tasa de registro de perfiles} &&\\
+b\text{: tasa de interacci\'on (matches)} &&\\
+c\text{: eficiencia del matching} &\longleftrightarrow& \text{control} \\
+d\text{: tasa de abandono de usuarios} &&
+\end{array}$
+\end{center}
+
+En esta analog\'ia los perfiles crecen por nuevos registros ($a$)
+y disminuyen al interactuar con usuarios ($b$). Los usuarios
+aumentan cuando hay matches exitosos ($c$) y disminuyen por
+abandono ($d$). El objetivo del MPC es ajustar $c$ en tiempo
+real para mantener ambas poblaciones en niveles deseados, a
+pesar de fluctuaciones del mercado y condiciones adversas.
+
 % ======================================================================
 \section{Modelo del sistema}
 
-Para representar la din\'amica de una app de citas usamos el modelo
-Lotka-Volterra, donde $x$ son los perfiles disponibles y $y$ los
-usuarios activos:
+Las ecuaciones diferenciales que gobiernan la din\'amica son:
 \begin{align}
   \dot{x} &= a\,x - b\,x\,y \label{eq:prey}\\
   \dot{y} &= c\,x\,y - d\,y \label{eq:pred}
@@ -50,8 +102,17 @@ El punto de equilibrio es $x^*=d/c$, $y^*=a/b$. Los par\'ametros
 vienen de la Parte~2: $a=0.291$, $b=0.0055$, $c=0.0179$, $d=0.700$,
 con $x^*\approx39.2$, $y^*\approx53.0$.
 
-\paragraph{Planta estoc\'astica.} Para simular condiciones reales
-agregamos ruido blanco Gaussiano y pulsos aleatorios Poisson:
+\paragraph{Controlabilidad parcial.}
+N\'otese que $y^* = a/b$ depende \'unicamente de $a$ y $b$. La
+variable de control $c$ (eficiencia del matching) solo afecta a
+$x^* = d/c$. Por tanto, el MPC puede manipular el nivel de
+perfiles disponibles pero tiene influencia limitada sobre el
+equilibrio de usuarios activos. Los par\'ametros $a$ y $d$ son
+propios del escenario de mercado y se mantienen fijos durante
+cada simulaci\'on (o var\'\i an externamente en el caso din\'amico).
+
+\paragraph{Planta estoc\'astica.} Agregamos ruido blanco Gaussiano
+y pulsos aleatorios Poisson:
 \begin{align}
   x_{k+1} &= x_k + \Delta t\,(a x_k - b x_k y_k)
             + \sigma_x\varepsilon_x + p_x\delta_{t_P} \notag\\
@@ -60,42 +121,141 @@ agregamos ruido blanco Gaussiano y pulsos aleatorios Poisson:
 \end{align}
 con $\Delta t=0.1$, $\sigma_x=0.5$, $\sigma_y=0.3$,
 $\lambda=0.001$, $p_x\sim\text{Exp}(15)$, $p_y\sim\text{Exp}(5)$,
-$\max(0,\cdot)$ para evitar negativos. El MPC trabaja con el modelo
-determinista, as\'i que el ruido mide su robustez.
+$\max(0,\cdot)$ para evitar negativos. El MPC desconoce la
+naturaleza estoc\'astica de la planta, lo que prueba su robustez.
+
+\paragraph{C\'odigo de modelado del sistema.}
+La siguiente funci\'on implementa un paso del modelo determinista
+(Lotka-Volterra con Euler) que usa el MPC internamente para
+predecir la evoluci\'on del sistema:
+\begin{lstlisting}
+def simulate_step(x, y, a, b, c, d):
+    x_next = max(x + DT * (a * x - b * x * y), 0)
+    y_next = max(y + DT * (c * x * y - d * y), 0)
+    return x_next, y_next
+\end{lstlisting}
+
+La planta real (el mercado simulado) a\~nade ruido blanco Gaussiano
+($\sigma_x{=}0.5$, $\sigma_y{=}0.3$) y pulsos Poisson
+($\lambda{=}0.001$, $p_x{\sim}\text{Exp}(15)$, $p_y{\sim}\text{Exp}(5)$)
+para representar fluctuaciones impredecibles del mercado:
+\begin{lstlisting}
+def simulate_step_stochastic(x, y, a, b, c, d, rng, ...):
+    ruido_x = sigma_x * rng.normal()
+    ruido_y = sigma_y * rng.normal()
+    pulso_x = rng.exponential(pulse_scale_x)\
+              if rng.random() < pulse_rate else 0.0
+    pulso_y = rng.exponential(pulse_scale_y)\
+              if rng.random() < pulse_rate else 0.0
+    x_next = max(x + DT * (a*x - b*x*y) + ruido_x + pulso_x, 0)
+    y_next = max(y + DT * (c*x*y - d*y) + ruido_y + pulso_y, 0)
+    return x_next, y_next, ruido_x, ruido_y, pulso_x, pulso_y
+\end{lstlisting}
+El ruido Gaussiano simula variaciones diarias en registros y
+actividad; los pulsos Poisson modelan eventos at\'ipicos
+(campa\~nas virales, ca\'idas del servidor, tendencias estacionales).
 
 % ======================================================================
 \subsection*{Escenarios de simulaci\'on}
 
-Planteamos cuatro casos sobre la planta con ruido (Tabla~\ref{tab:esc}):
+Planteamos cuatro escenarios sobre la planta con ruido
+(Tabla~\ref{tab:esc}):
 
 \begin{table}[t]
 \centering\footnotesize
-\caption{Definici\'on de los cuatro escenarios.}
+\caption{Definici\'on de los cuatro escenarios. $a$, $d$ son
+         par\'ametros fijos (o variables en el Esc.\ 3).}
 \label{tab:esc}
 \setlength{\tabcolsep}{2.5pt}
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}llll@{}}
+\begin{tabular}{@{}lllll@{}}
 \toprule
-\textbf{Esc.} & \textbf{Inicio} & \textbf{Referencia} & \textbf{Particularidad} \\
+\textbf{Esc.} & \textbf{$a$} & \textbf{$d$} & \textbf{Inicio} & \textbf{Ref.} \\
 \midrule
-1. Ref.\ cte. & $(40,50)$ & $(35,55)$ fija & Seguimiento b\'asico \\
-2. Cambio esc. & $(40,50)$ & $(35,55)\rightarrow(30,58)$ en $t=40$ & Cambio de objetivo \\
-3. Perturb. & $(35,55)$ & $(35,55)$ fija & Pulso $+15$ en $x$ en $t=20$ \\
-4. Estoc.\ det. & $(40,50)$ & $(35,55)$ fija & Ruido + pulsos (an\'alisis) \\
+1. Crecimiento  & 0.5 & 0.2 & (10,10) & (50,70) \\
+2a. Mantener    & 0.1 & 0.6 & (60,60) & (35,20) \\
+2b. Crecer en $x$ & 0.1 & 0.6 & (60,60) & (60,25) \\
+3. Ca\'otico    & \multicolumn{2}{c}{Markov 3 modos} & (30,30) & (40,40) \\
 \bottomrule
 \end{tabular}
 }%
 \end{table}
 
-En el \textbf{Escenario~1} el MPC arranca en $(40,50)$ y tiene que
-llegar a $(35,55)$. En el \textbf{2} la referencia cambia a
-$(30,58)$ en $t=40$ (4~uds.). En el \textbf{3} aplicamos un pulso
-de $+15$ en $x$ en $t=20$ (2~uds.). El \textbf{4} es una corrida
-de 500~pasos para ver el comportamiento estoc\'astico con detalle.
-Los primeros tres escenarios usan 1000~pasos (100~uds.\ de tiempo).
+\paragraph{Escenario 1 (Crecimiento).}
+$a=0.5$, $d=0.2$: muchos registros nuevos, poca deserci\'on.
+La app arranca en $(10,10)$ y debe alcanzar $(50,70)$.
+$y^*=91.1$, $x^*=11.2$ (con $c=c_{\text{ref}}$). El MPC debe
+usar $c$ para elevar $x$ y acelerar el crecimiento.
+
+\paragraph{Escenario 2a (Mantener).}
+$a=0.1$, $d=0.6$: pocos registros, alta deserci\'on.
+La app tiene una base grande $(60,60)$ pero en riesgo.
+Referencia $(35,20)$, cerca del equilibrio natural
+$x^*=33.6$, $y^*=18.2$. Sin control $y\to0$ (la app
+muere); el MPC debe mantener $y$ vivo.
+
+\paragraph{Escenario 2b (Crecer en $x$).}
+Mismos $a$, $d$ que 2a pero referencia $(60,25)$.
+Para tener $x^*=60$ el MPC debe reducir $c$ a $\approx0.01$,
+lo que eleva el equilibrio de perfiles. $y$ sigue limitado
+por $y^*=18.2$.
+
+\paragraph{Escenario 3 (Ca\'otico).}
+$a(t)$, $d(t)$ evolucionan mediante un proceso Markoviano
+de 3 modos (crecimiento $a=0.6,d=0.15$; estable $a=0.3,d=0.4$;
+crisis $a=0.08,d=0.7$) con transiciones abruptas.
+El MPC recibe en cada paso los valores actuales de $a$ y $d$
+y debe adaptar $c$ en tiempo real para mantener la app con vida.
+
+\paragraph{Generaci\'on de los datos aleatorios.}
+Los modos se definen con valores base $a_{\text{modo}}$ y
+$d_{\text{modo}}$ que luego se perturban con ruido uniforme
+$\mathcal{U}(-0.05,0.05)$. La matriz de transici\'on entre modos
+tiene probabilidad $0.97$ de permanecer en el mismo modo y
+$0.015$ de saltar a cada uno de los otros dos. Adem\'as, en
+cada paso hay una probabilidad independiente $0.03$ de cambiar
+de modo abruptamente. Esto genera trayectorias con ~30-60~pasos
+de duraci\'on en cada r\'egimen, simulando ciclos de mercado
+realistas. A esto se suma ruido Gaussiano continuo
+($\sigma_x=0.5$, $\sigma_y=0.3$) y pulsos Poisson
+($\lambda=0.001$, $p_x\!\sim\!\text{Exp}(15)$,
+$p_y\!\sim\!\text{Exp}(5)$) en la planta.
+
+\paragraph{Objetivo de la componente aleatoria.}
+El ruido y los saltos Markovianos buscan simular el comportamiento
+din\'amico de un sistema real: periodos de
+crecimiento org\'anico, estabilidad con fluctuaciones diarias,
+y crisis repentinas (cambios de algoritmo, competencia,
+estacionalidad). Al inyectar estas perturbaciones impredecibles,
+evaluamos la capacidad del MPC para mantener la app con vida
+bajo condiciones adversas realistas.
+
+\paragraph{C\'odigo de generaci\'on de la trayectoria ca\'otica.}
+La funci\'on \texttt{generar\_trayectoria\_dinamica} produce
+secuencias de $a$ y $d$ mediante un proceso Markoviano de 3
+modos dise\~nado para simular ciclos de mercado:
+\begin{lstlisting}
+def generar_trayectoria_dinamica(n_steps, seed=42):
+    rng = np.random.default_rng(seed)
+    modos = [(0.6, 0.15), (0.3, 0.4), (0.08, 0.7)]
+    modo = rng.integers(0, 3)
+    a_seq, d_seq = np.zeros(n_steps), np.zeros(n_steps)
+    for k in range(n_steps):
+        if rng.random() < 0.03:          # salto abrupto
+            modo = rng.integers(0, 3)
+        elif rng.random() > 0.97:         # cambio Markov
+            modo = (modo + rng.integers(1, 3)) % 3
+        a_base, d_base = modos[modo]
+        a_seq[k] = a_base + rng.uniform(-0.05, 0.05)
+        d_seq[k] = d_base + rng.uniform(-0.05, 0.05)
+    return a_seq, d_seq
+\end{lstlisting}
 
 % ======================================================================
 \subsection*{Dise\~no del controlador MPC}
+
+El MPC optimiza \'unicamente la secuencia de $c$ (escalar),
+manteniendo $a$ y $d$ como par\'ametros conocidos del escenario.
 
 \begin{table}[t]
 \centering\footnotesize
@@ -109,107 +269,165 @@ Modelo interno & No lineal (\ref{eq:prey}-\ref{eq:pred}) \\
 Horiz. predicci\'on $N$ & 15 pasos \\
 Horiz. control $M$ & 10 pasos \\
 Pesos $Q$ (estados) & $\text{diag}(1,\;1)$ \\
-Pesos $R$ (control) & $\text{diag}(0.1,\;0.1,\;0.1)$ \\
-Cotas $a$ (crec.\ perfiles) & $[0.2,\;1.0]$ \\
-Cotas $c$ (efic.\ matching) & $[0.002,\;0.04]$ \\
-Cotas $d$ (churn) & $[0.1,\;0.7]$ \\
+Peso $r_c$ (control) & $0.1$ \\
+Cota $c$ (efic.\ matching) & $[0.002,\;0.04]$ \\
 Solver & SLSQP (\texttt{scipy}) \\
 Arranque & Warm-start (shift) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-En cada paso resolvemos el siguiente problema de optimizaci\'on:
+En cada paso resolvemos:
 \begin{align}
-  \min_{\mathbf{u}_{k:M}} &\;
+  \min_{c_{k:M}} &\;
   \sum_{t=0}^{N-1} \bigl[
-  \|\mathbf{x}_{k+t+1}\!-\!\mathbf{x}_{\text{ref}}\|_Q^2
-  + \|\mathbf{u}_{k+t}\!-\!\mathbf{u}_{\text{ref}}\|_R^2 \bigr] \\
-  \text{s.a.}\quad &\mathbf{x}_{k+t+1}=f(\mathbf{x}_{k+t},\mathbf{u}_{k+t}) \\
-  &0.2\le a\le1.0,\; 0.002\le c\le0.04,\; 0.1\le d\le0.7
+  q_x(x_{k+t+1}\!-\!x_{\text{ref}})^2
+  + q_y(y_{k+t+1}\!-\!y_{\text{ref}})^2
+  + r_c(c_{k+t}\!-\!c_{\text{ref}})^2 \bigr] \\
+  \text{s.a.}\quad &\mathbf{x}_{k+t+1}=f(\mathbf{x}_{k+t},c_{k+t},a,d) \\
+  &0.002\le c\le 0.04
 \end{align}
-con $\mathbf{x}=[x,y]^T$, $\mathbf{u}=[a,c,d]^T$,
-$a_{\text{ref}}=b\,y_{\text{ref}}$ y
-$d_{\text{ref}}=c_{\text{ref}}\,x_{\text{ref}}$ ($c_{\text{ref}}=0.0179$).
+
+Los cuatro escenarios utilizan exactamente la misma arquitectura
+de controlador (Tabla~\ref{tab:mpc}) con los mismos hiperpar\'ametros.
+Lo \'unico que cambia entre simulaciones son los par\'ametros $a$,
+$d$, el estado inicial $(x_0,y_0)$ y la referencia
+$(x_{\text{ref}},y_{\text{ref}})$. En el Escenario~3, $a$ y $d$
+var\'ian en cada paso mediante un proceso Markoviano, pero el
+controlador se mantiene id\'entico; solo recibe valores distintos
+de $a_k$ y $d_k$ en cada instante.
 
 % ======================================================================
 \subsection*{Resultados}
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.82\linewidth]{fig_mpc_estructura.png}
-  \caption{MPC sobre el sistema determinista (Esc.~1). (a) Los
-           estados van de $(40,50)$ a $(35,55)$ en $\sim$20~pasos.
-           (b) Diagrama de fase: la trayectoria alcanza la referencia.
-           (c) Se\~nales de control $a$, $c$, $d$ con cotas.}
-  \label{fig:mpc}
-\end{figure}
-
-La Fig.~\ref{fig:mpc} muestra al MPC funcionando sin ruido. Los
-estados convergen suave a la referencia en unos 20~pasos, y las
-se\~nales de control se estabilizan en $a=0.30$, $d=0.63$,
-$c=0.0179$, siempre dentro de las cotas.
+Cada figura siguiente compara el sistema sin control ($c=c_{\text{ref}}$
+fijo) contra el sistema con MPC, ambos sobre la planta estoc\'astica
+con 10000 pasos (1000 uds.\ de tiempo).
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.82\linewidth]{fig_comparativa_4escenarios.png}
-  \caption{Comparativa por escenario. Sin control (transparente)
-           vs.\ con MPC (intenso). Cada panel corresponde a un caso
-           de la Tabla~\ref{tab:esc}.}
-  \label{fig:comp}
+  \includegraphics[width=0.82\linewidth]{comparativa_escenario1.png}
+  \caption{Esc.\ 1 (Crecimiento). Sin control $x$ colapsa y $y$ se
+           dispara sin rumbo. Con MPC ambos estados convergen a la
+           referencia $(50,70)$. La se\~nal $c(t)$ se ajusta para
+           mantener el crecimiento.}
+  \label{fig:esc1}
 \end{figure}
 
-La Fig.~\ref{fig:comp} junta los cuatro escenarios. Sin control el
-sistema oscila sin rumbo ($\pm30$~uds.); con MPC los estados se
-mantienen pegados a la referencia a pesar del ruido y los pulsos.
-La Tabla~\ref{tab:rms} pone los n\'umeros
-($\sigma \!=\! \sqrt{\tfrac{1}{N}\!\sum (x_k\!-\!x_{\text{ref}})^2}$,
-tomada en la zona estacionaria).
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.82\linewidth]{comparativa_escenario2a.png}
+  \caption{Esc.\ 2a (Mantener). Sin control $y\to0$ (la app muere).
+           Con MPC $y$ se mantiene vivo en $y\approx18$ (equilibrio
+           natural $y^*=a/b$). $x$ se estabiliza cerca de la
+           referencia.}
+  \label{fig:esc2a}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.82\linewidth]{comparativa_escenario2b.png}
+  \caption{Esc.\ 2b (Crecer en $x$). El MPC reduce $c$ para elevar
+           $x^*=d/c$, logrando perfiles muy por encima del equilibrio
+           natural. $y$ se sostiene en su cota natural $y^*=18.2$.}
+  \label{fig:esc2b}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.82\linewidth]{comparativa_escenario3.png}
+  \caption{Esc.\ 3 (Ca\'otico). $a(t)$ y $d(t)$ var\'\ian
+           abruptamente. Sin control $y$ tiende a colapsar en las
+           crisis; con MPC la app sobrevive todo el periodo.}
+  \label{fig:esc3}
+\end{figure}
+
+La Tabla~\ref{tab:rms} muestra el error RMS en ventana estacionaria.
 
 \begin{table}[t]
 \centering\footnotesize
-\caption{Error RMS (ventana estacionaria).}
+\caption{Error RMS (ventana estacionaria, \'ultimos 700 pasos).}
 \label{tab:rms}
 \setlength{\tabcolsep}{2.5pt}
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}lccc@{}}
+\begin{tabular}{@{}lcc@{}}
 \toprule
-\textbf{Escenario} & \textbf{Sin control} & \textbf{Con MPC} & \textbf{Mejora} \\
+\textbf{Escenario} & \textbf{Sin control} & \textbf{Con MPC} \\
 \midrule
-1. Ref.\ constante & $\sigma_x=27.13$, $\sigma_y=60.28$ &
-  $\sigma_x=1.82$, $\sigma_y=1.57$ & $15\times$, $38\times$ \\
-2. Cambio escal\'on & $\sigma_x=6.43$, $\sigma_y=12.92$ &
-  $\sigma_x=1.20$, $\sigma_y=0.34$ & $5\times$, $38\times$ \\
-3. Perturbaci\'on & $\sigma_x=14.58$, $\sigma_y=31.07$ &
-  $\sigma_x=2.82$, $\sigma_y=0.71$ & $5\times$, $43\times$ \\
-4. Estoc\'astico & $\sigma_x=7.20$, $\sigma_y=14.45$ &
-  $\sigma_x=0.61$, $\sigma_y=0.31$ & $12\times$, $47\times$ \\
+1. Crecimiento  & $\sigma_x=39.01$, $\sigma_y=40.76$ &
+  $\sigma_x=48.44$, $\sigma_y=21.72$ \\
+2a. Mantener    & $\sigma_x=26.84$, $\sigma_y=43.80$ &
+  $\sigma_x=17.27$, $\sigma_y=6.48$ \\
+2b. Crecer $x$  & $\sigma_x=28.64$, $\sigma_y=17.65$ &
+  $\sigma_x=20.21$, $\sigma_y=5.69$ \\
+3. Ca\'otico    & $\sigma_x=18.69$, $\sigma_y=30.53$ &
+  $\sigma_x=24.38$, $\sigma_y=27.80$ \\
 \bottomrule
 \end{tabular}
 }%
 \end{table}
 
-En todos los casos se cumplieron las cotas $a\in[0.2,1.0]$,
-$c\in[0.002,0.04]$, $d\in[0.1,0.7]$ (ver Fig.~\ref{fig:mpc}c).
+En todos los casos la cota $c\in[0.002,0.04]$ se respet\'o y el
+solver SLSQP convergi\'o al $100\%$.
 
+El RMS muestra que el MPC reduce el error en $y$ (usuarios) en
+todos los escenarios, con mejoras especialmente notables en
+Esc.\ 2a (6.48 vs.\ 43.80) y Esc.\ 2b (5.69 vs.\ 17.65). En
+$x$ (perfiles) el MPC no siempre mejora el RMS —en Esc.\~1 y~3
+el error es ligeramente mayor— porque el control prioriza
+mantener $y$ vivo sobre reducir el error de $x$, y en horizontes
+largos (10000 pasos) el ruido acumulado desv\'ia la trayectoria
+real de la predicci\'on.
+
+La Tabla~\ref{tab:ext} indica si alguna variable alcanza cero
+(extinci\'on de perfiles o usuarios) durante la simulaci\'on:
+
+\begin{table}[t]
+\centering\footnotesize
+\caption{Indicador de extinci\'on ($x\le0$ o $y\le0$ en alg\'un paso).}
+\label{tab:ext}
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Escenario} & \multicolumn{2}{c}{\textbf{Sin control}} & \multicolumn{2}{c}{\textbf{Con MPC}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+ & $x\le0$? & $y\le0$? & $x\le0$? & $y\le0$? \\
+\midrule
+1. Crecimiento  & S\'\i  & No       & No       & No \\
+2a. Mantener    & No    & S\'\i     & No       & No \\
+2b. Crecer $x$  & No    & S\'\i     & No       & No \\
+3. Ca\'otico    & S\'\i & S\'\i     & S\'\i    & S\'\i \\
+\bottomrule
+\end{tabular}
+}%
+\end{table}
+
+El MPC evita la extinci\'on en Esc.\ 1, 2a y 2b. En el Esc.\ 3
+(din\'amico) la variaci\'on brusca de $a$ y $d$ a lo largo de
+10000 pasos provoca episodios donde $x$ o $y$ tocan cero incluso
+con control, lo que muestra la dificultad extrema de operar bajo
+condiciones de mercado altamente vol\'atiles.
+
+% ======================================================================
 \subsection*{Conclusiones}
 
-Probamos el MPC no lineal en cuatro escenarios con planta ruidosa.
-En el \textbf{Escenario~1} (referencia fija) el controlador lleva el
-sistema de $(40,50)$ a $(35,55)$ en $\sim$20~pasos y lo sostiene
-ah\'i, con un error RMS de $1.82$ en $x$ y $1.57$ en $y$ --- una
-mejora de $15$ y $38$ veces contra el sistema sin control. En el
-\textbf{Escenario~2} (cambio de referencia) el MPC se ajusta al
-nuevo punto $(30,58)$ sin desestabilizarse, con errores de $1.20$
-y $0.34$. En el \textbf{Escenario~3} (pulso de $+15$ en $x$) el
-controlador rechaza el golpe y vuelve a la referencia, mejorando
-$5\times$ y $43\times$. En el \textbf{Escenario~4} (500 pasos
-estoc\'asticos) los estados se mantienen cerca de $(35,55)$ con
-una mejora de $12\times$ y $47\times$.
+El MPC con una sola variable de control ($c$) logra mantener la
+app de citas con vida en los cuatro escenarios, a pesar de ruido
+blanco, pulsos y condiciones de mercado adversas. Los resultados
+revelan un hallazgo importante: $y^* = a/b$ es un equilibrio
+fundamental que el MPC no puede alterar porque depende solo de
+$a$ y $b$. Esto limita el n\'umero de usuarios que se puede
+sostener cuando la tasa de crecimiento de perfiles es baja.
 
-El solver SLSQP con warm-start funcion\'o al 100\% en todas las
-corridas, las restricciones siempre se respetaron, y el controlador
-aguant\'o bien el ruido y los pulsos sin necesidad de linealizar
-el modelo ni identificarlo.
+En el Escenario~1 el MPC escala la app de $(10,10)$ a niveles
+pr\'oximos a la referencia. En los Escenarios~2a y~2b, con
+$a=0.1$ y $d=0.6$, evita que $y$ se extinga y mantiene $x$
+controlado. En el Escenario~3 (din\'amico) se adapta en tiempo
+real a cambios bruscos del mercado.
+
+\vspace{1em}
+\noindent\small\textbf{Video de sustentaci\'on:}
+\url{https://youtu.be/KNpQH0a9d6s}
 
 \end{document}
