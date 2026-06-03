@@ -711,6 +711,46 @@ print(f"  {'Mejora RMS y':<30} {'-':<15} {e_y4_nc/e_y4_ctrl:<15.0f}x")
 """)
 
 # ============================================================
+# MOSAICO COMPARATIVO 2x2
+# ============================================================
+md(r"""---
+### Mosaico comparativo de los 4 escenarios
+""")
+
+code(r"""print("Generando mosaico comparativo 2x2...")
+import matplotlib.image as mpimg
+
+files = [
+    "comparativa_escenario1.png",
+    "comparativa_escenario2.png",
+    "comparativa_escenario3.png",
+    "comparativa_escenario4.png",
+]
+titles = [
+    "Escenario 1",
+    "Escenario 2",
+    "Escenario 3",
+    "Escenario 4",
+]
+
+fig, axes = plt.subplots(2, 2, figsize=(12, 7))
+for i, (f, t) in enumerate(zip(files, titles)):
+    ax = axes[i // 2][i % 2]
+    img = mpimg.imread(f)
+    ax.imshow(img)
+    ax.axis("off")
+    ax.set_title(t, fontsize=10, fontweight="bold")
+
+plt.suptitle("Comparativa: sin control vs con MPC en los 4 escenarios",
+             fontsize=13, fontweight="bold")
+plt.tight_layout()
+plt.savefig("fig_comparativa_4escenarios.png", dpi=200, bbox_inches="tight")
+plt.show()
+plt.close()
+print("  fig_comparativa_4escenarios.png generado")
+""")
+
+# ============================================================
 # CONCLUSIONS
 # ============================================================
 md(r"""---
