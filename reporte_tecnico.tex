@@ -8,7 +8,6 @@
 \usepackage{geometry}
 \usepackage{hyperref}
 \usepackage{booktabs}
-\usepackage{multirow}
 
 \geometry{left=1.6cm, right=1.6cm, top=1.5cm, bottom=1.5cm}
 \setlength{\columnsep}{0.5cm}
@@ -33,68 +32,39 @@
 \section{Modelo del sistema}
 % ======================================================================
 
-Se modela una aplicaci\'on de citas mediante un sistema Lotka-Volterra
-no lineal con din\'amica estoc\'astica:
+Se modela una aplicaci\'on de citas mediante Lotka-Volterra
+($x$: perfiles disponibles, $y$: usuarios activos):
 \begin{align}
-  \dot{x} &= a\,x - b\,x\,y \quad\text{(perfiles)} \label{eq:prey}\\
-  \dot{y} &= c\,x\,y - d\,y \quad\text{(usuarios)} \label{eq:pred}
+  \dot{x} &= a\,x - b\,x\,y \label{eq:prey}\\
+  \dot{y} &= c\,x\,y - d\,y \label{eq:pred}
 \end{align}
-donde $x$ son los perfiles disponibles (presa) y $y$ los usuarios activos
-(depredador). La Tabla~\ref{tab:analogia} detalla la analog\'ia.
-
-\begin{table}[t]
-\centering\small
-\caption{Analog\'ia ecol\'ogico $\rightarrow$ app de citas.}
-\label{tab:analogia}
-\begin{tabular}{@{}lll@{}}
-\toprule
-\textbf{Ecol\'ogico} & \textbf{Ecuaci\'on} & \textbf{App de citas} \\
-\midrule
-Presa $x$ & $\dot{x}=a x-b x y$ & Perfiles disponibles \\
-Depredador $y$ & $\dot{y}=c x y-d y$ & Usuarios activos \\
-Natalidad presas & $+a x$ & Nuevos registros \\
-Caza / match & $-b x y$ & Matches consumidos \\
-Alimentaci\'on & $+c x y$ & Matches exitosos \\
-Muerte / churn & $-d y$ & Abandono de usuarios \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 Punto de equilibrio: $x^*=d/c$, $y^*=a/b$. Par\'ametros \'optimos
-(Parte~2): $a=0.291$, $b=0.0055$, $c=0.0179$, $d=0.700$. Equilibrio
-natural: $x^*\approx39.2$, $y^*\approx53.0$.
+(Parte~2): $a=0.291$, $b=0.0055$, $c=0.0179$, $d=0.700$, con
+$x^*\approx39.2$, $y^*\approx53.0$.
 
-\paragraph{Sistema estoc\'astico.} La planta real incorpora ruido blanco
-Gaussiano y pulsos aleatorios Poisson para simular un entorno realista:
+\paragraph{Planta estoc\'astica.} Para simular un entorno realista se
+incorporan ruido blanco Gaussiano y pulsos aleatorios Poisson:
 \begin{align}
   x_{k+1} &= x_k + \Delta t\,(a x_k - b x_k y_k)
             + \sigma_x\varepsilon_x + p_x\delta_{t_P} \notag\\
   y_{k+1} &= y_k + \Delta t\,(c x_k y_k - d y_k)
             + \sigma_y\varepsilon_y + p_y\delta_{t_P} \notag
 \end{align}
-con $\sigma_x=0.5$, $\sigma_y=0.3$, $\lambda=0.001$,
-$p_x\sim\text{Exp}(15)$, $p_y\sim\text{Exp}(5)$, $\Delta t=0.1$,
-y $\max(0,\cdot)$ para evitar estados negativos. El MPC {\bf desconoce}
-estos t\'erminos estoc\'asticos (modelo interno determinista), midiendo
-su robustez ante incertidumbre no modelada.
+con $\Delta t=0.1$, $\sigma_x=0.5$, $\sigma_y=0.3$,
+$\lambda=0.001$, $p_x\sim\text{Exp}(15)$, $p_y\sim\text{Exp}(5)$,
+y $\max(0,\cdot)$ para evitar estados negativos. El MPC desconoce
+estos t\'erminos (modelo interno determinista), lo que mide su
+robustez ante incertidumbre no modelada.
 
-% ======================================================================
 \section{Objetivo de control}
-% ======================================================================
 
-El sistema tiene un punto de equilibrio estable, por lo que la gu\'ia
-\textbf{exige seguimiento de referencia}. El MPC debe llevar los estados
-a $(x_{\text{ref}},y_{\text{ref}})$ respetando las restricciones.
-
-Se evaluaron cuatro escenarios sobre la planta estoc\'astica:
+Cuatro escenarios sobre la planta estoc\'astica:
 \begin{enumerate}\small
   \item \textbf{Ref. constante:} $(40,50)\rightarrow(35,55)$, 1000~pasos.
-  \item \textbf{Cambio escal\'on:} ref. $(35,55)\rightarrow(30,58)$
-        en $t=40$, 1000~pasos.
-  \item \textbf{Perturbaci\'on:} pulso $+15$ en $x$ en $t=20$ sobre
-        el ruido base, 1000~pasos.
+  \item \textbf{Cambio escal\'on:} $(35,55)\rightarrow(30,58)$ en $t=40$.
+  \item \textbf{Perturbaci\'on:} pulso $+15$ en $x$ en $t=20$.
   \item \textbf{An\'alisis estoc\'astico:} 500~pasos con gr\'aficas
-        detalladas de ruido, pulsos y control.
+        detalladas de ruido y control.
 \end{enumerate}
 
 % ======================================================================
@@ -114,16 +84,16 @@ Horiz. predicci\'on $N$ & 15 pasos \\
 Horiz. control $M$ & 10 pasos \\
 Pesos $Q$ (estados) & $\text{diag}(1,\;1)$ \\
 Pesos $R$ (control) & $\text{diag}(0.1,\;0.1,\;0.1)$ \\
-Cotas $a$ & $[0.2,\;1.0]$ (crecimiento) \\
-Cotas $c$ & $[0.002,\;0.04]$ (matching) \\
-Cotas $d$ & $[0.1,\;0.7]$ (churn) \\
+Cotas $a$ (crec.\ perfiles) & $[0.2,\;1.0]$ \\
+Cotas $c$ (efic.\ matching) & $[0.002,\;0.04]$ \\
+Cotas $d$ (churn) & $[0.1,\;0.7]$ \\
 Solver & SLSQP (\texttt{scipy}) \\
 Arranque & Warm-start (shift) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-En cada instante $k$ se resuelve:
+En cada paso $k$ se resuelve:
 \begin{align}
   \min_{\mathbf{u}_{k:M}} &\;
   \sum_{t=0}^{N-1} \bigl[
@@ -132,51 +102,85 @@ En cada instante $k$ se resuelve:
   \text{s.a.}\quad &\mathbf{x}_{k+t+1}=f(\mathbf{x}_{k+t},\mathbf{u}_{k+t}) \\
   &0.2\le a\le1.0,\; 0.002\le c\le0.04,\; 0.1\le d\le0.7
 \end{align}
-con $\mathbf{x}=[x,y]^T$, $\mathbf{u}=[a,c,d]^T$, y referencia
+con $\mathbf{x}=[x,y]^T$, $\mathbf{u}=[a,c,d]^T$ y referencia
 estacionaria $a_{\text{ref}}=b\,y_{\text{ref}}$,
 $d_{\text{ref}}=c_{\text{ref}}\,x_{\text{ref}}$ ($c_{\text{ref}}=0.0179$).
 
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{fig_mpc_estructura.png}
+  \caption{Resultado del MPC (Esc.~1, sistema determinista). (a) Los
+           estados $x$ (perfiles) y $y$ (usuarios) convergen de $(40,50)$
+           a $(35,55)$ en $\sim$20 pasos. (b) Diagrama de fase: la
+           trayectoria en el plano $(x,y)$ alcanza la referencia marcada
+           con estrella. (c) Se\~nales de control $a$, $c$, $d$; las
+           l\'ineas punteadas son las cotas $[0.2,1.0]$, $[0.002,0.04]$,
+           $[0.1,0.7]$ respectivamente -- todas respetadas.}
+  \label{fig:mpc}
+\end{figure}
+
+La Fig.~\ref{fig:mpc} muestra el comportamiento del MPC con el
+sistema determinista. En el panel (a) se observa la convergencia
+suave de ambos estados a la referencia en aproximadamente 20 pasos
+(2~uds.\ de tiempo). El panel (b) presenta la trayectoria en el
+plano de fase, donde la curva verde conecta el punto inicial (c\'irculo)
+con el final (cuadrado) en la referencia (estrella). El panel (c)
+muestra las tres se\~nales de control: $a$ parte de $0.29$ y se
+estabiliza en $a_{\text{ref}}=0.30$, $d$ comienza en $0.70$ y baja
+a $d_{\text{ref}}=0.63$, mientras que $c$ permanece en $0.0179$.
+Ninguna viola las cotas (l\'ineas punteadas). El solver SLSQP alcanza
+100\% de \'exito.
+
 % ======================================================================
-\section{Resultados}
+\section{Resultados sobre la planta estoc\'astica}
 % ======================================================================
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{reporte_figura.png}
-  \caption{Superior: evoluci\'on de estados con MPC, diagrama de fase
-           y se\~nales de control con cotas (punteadas). Inferior:
-           comparativa estoc\'astica sin control vs.\ con MPC y error
-           RMS.}
-  \label{fig:res}
+  \includegraphics[width=\linewidth]{fig_comparativa_estocastica.png}
+  \caption{Comparativa estoc\'astica (Esc.~4, 500~pasos, misma semilla).
+           (a) Sin control: los estados fluct\'uan alrededor del equilibrio
+           natural $(39.2,53.0)$ debido al ruido y pulsos. (b) Con MPC:
+           el controlador mantiene los estados en la referencia $(35,55)$
+           a pesar del ruido. (c) Error RMS en ventana estacionaria:
+           el MPC reduce el error entre $12\times$ y $47\times$.}
+  \label{fig:comp}
 \end{figure}
 
-La Fig.~\ref{fig:res} (superior) muestra el MPC llevando $(40,50)$ a
-$(35,55)$ -- convergencia en $\sim$20 pasos, se\~nales dentro de cotas,
-100\% de \'exito del solver SLSQP. La parte inferior compara el sistema
-estoc\'astico sin control (par\'ametros fijos, oscila por ruido) contra
-el MPC que rechaza el ruido y mantiene la referencia.
+La Fig.~\ref{fig:comp} compara el sistema estoc\'astico sin control
+frente al MPC. En el panel (a), los par\'ametros fijos no pueden
+rechazar el ruido ni los pulsos: los estados oscilan con amplitudes
+de hasta $\pm30$ unidades. El panel (b) muestra que el MPC, a pesar
+de usar un modelo interno determinista que desconoce el ruido,
+mantiene ambos estados cerca de la referencia $(35,55)$. El panel (c)
+cuantifica esta mejora: el error RMS de $x$ pasa de $7.19$ a $0.61$
+($12\times$) y el de $y$ de $14.48$ a $0.31$ ($47\times$).
 
-El error RMS (ventana estacionaria) resume la robustez:
-\begin{center}\small
+La Tabla~\ref{tab:rms} extiende el an\'alisis a los cuatro escenarios.
+
+\begin{table}[t]
+\centering\small
+\caption{Error RMS (ventana estacionaria) -- los cuatro escenarios.}
+\label{tab:rms}
 \begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Esc.} & \textbf{Ventana} & \textbf{Sin control} & \textbf{Con MPC} \\
+\textbf{Escenario} & \textbf{Sin control} & \textbf{Con MPC} & \textbf{Mejora} \\
 \midrule
-1 (ref. cte.) & 500 pasos & $\sigma_x=27.13$, $\sigma_y=60.28$ &
-  $\sigma_x=1.82$, $\sigma_y=1.57$ \\
-2 (cambio) & 600 pasos & $\sigma_x=6.43$, $\sigma_y=12.92$ &
-  $\sigma_x=1.20$, $\sigma_y=0.34$ \\
-3 (pert.) & 800 pasos & $\sigma_x=14.58$, $\sigma_y=31.07$ &
-  $\sigma_x=2.82$, $\sigma_y=0.71$ \\
-4 (estoc.) & 250 pasos & $\sigma_x=7.20$, $\sigma_y=14.45$ &
-  $\sigma_x=0.61$, $\sigma_y=0.31$ \\
+1. Ref.\ constante & $\sigma_x=27.13$, $\sigma_y=60.28$ &
+  $\sigma_x=1.82$, $\sigma_y=1.57$ & $15\times$, $38\times$ \\
+2. Cambio escal\'on & $\sigma_x=6.43$, $\sigma_y=12.92$ &
+  $\sigma_x=1.20$, $\sigma_y=0.34$ & $5\times$, $38\times$ \\
+3. Perturbaci\'on & $\sigma_x=14.58$, $\sigma_y=31.07$ &
+  $\sigma_x=2.82$, $\sigma_y=0.71$ & $5\times$, $43\times$ \\
+4. Estoc\'astico & $\sigma_x=7.20$, $\sigma_y=14.45$ &
+  $\sigma_x=0.61$, $\sigma_y=0.31$ & $12\times$, $47\times$ \\
 \bottomrule
 \end{tabular}
-\end{center}
-La mejora del MPC frente al sistema sin control alcanza entre
-$5\times$ y $47\times$ en error RMS. Todas las restricciones
-$a\in[0.2,1.0]$, $c\in[0.002,0.04]$, $d\in[0.1,0.7]$ fueron
-respetadas en todo momento (Fig.~\ref{fig:res} superior derecha).
+\end{table}
+
+En todos los escenarios las restricciones $a\in[0.2,1.0]$,
+$c\in[0.002,0.04]$, $d\in[0.1,0.7]$ fueron respetadas durante
+toda la simulaci\'on (ver cotas en Fig.~\ref{fig:mpc}c).
 
 % ======================================================================
 \section{Conclusiones}
@@ -188,22 +192,23 @@ respetadas en todo momento (Fig.~\ref{fig:res} superior derecha).
 \toprule
 \textbf{Requisito gu\'ia} & \textbf{Evidencia} & \textbf{Resultado} \\
 \midrule
-Ecuaciones modelo & Sec.~1, (1)-(4) & LV + estoc\'astico \\
+Ecuaciones modelo & Sec.~1 & LV + estoc\'astico \\
 Objetivo control & Sec.~2 & Tracking ref. \\
-Matrices $Q$, $R$ & Sec.~3, Tabla~2 & diag(1,1), diag(0.1) \\
-Horizontes $N$, $M$ & Sec.~3, Tabla~2 & $N=15$, $M=10$ \\
-Solver & Sec.~3, Tabla~2 & SLSQP, 100\% \'exito \\
-Restricciones & Sec.~3, Tabla~2 & 3 cotas respetadas \\
-Evol. estados & Fig.~\ref{fig:res} & Convergencia ref. \\
-Se\~nal control & Fig.~\ref{fig:res} & Cotas respetadas \\
-Valid. no lineal & Sec.~4 & 4 escenarios \\
-Robustez ruido & Sec.~4, tabla RMS & Mejora $5\times$--$47\times$ \\
+Matrices $Q$, $R$ & Tabla~1 & diag(1,1), diag(0.1) \\
+Horizontes $N$, $M$ & Tabla~1 & $N=15$, $M=10$ \\
+Solver & Tabla~1 & SLSQP, 100\% \'exito \\
+Restricciones & Fig.~\ref{fig:mpc}c & 3 cotas respetadas \\
+Evol.\ estados & Fig.~\ref{fig:mpc}a & Convergencia ref. \\
+Se\~nal control & Fig.~\ref{fig:mpc}c & Cotas respetadas \\
+Valid.\ no lineal & Sec.~4 & 4 escenarios \\
+Robustez ruido & Fig.~\ref{fig:comp}, Tabla~2 & Mejora $5\times$--$47\times$ \\
 \bottomrule
 \end{tabular}
 \normalsize
 
-El controlador MPC no lineal implementado cumple todos los requisitos:
-seguimiento de referencia exacto, rechazo a perturbaciones, robustez
-ante ruido estoc\'astico y respeto de restricciones operativas.
+El MPC no lineal implementado cumple todos los requisitos:
+seguimiento de referencia exacto (Fig.~\ref{fig:mpc}), rechazo a
+perturbaciones y robustez ante ruido estoc\'astico
+(Fig.~\ref{fig:comp}), con respeto de restricciones.
 
 \end{document}
