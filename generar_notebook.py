@@ -711,40 +711,59 @@ print(f"  {'Mejora RMS y':<30} {'-':<15} {e_y4_nc/e_y4_ctrl:<15.0f}x")
 """)
 
 # ============================================================
-# MOSAICO COMPARATIVO 2x2
+# FIGURA COMPARATIVA 2x2 (4 escenarios, 4 plots directos)
 # ============================================================
 md(r"""---
-### Mosaico comparativo de los 4 escenarios
+### Comparativa de los 4 escenarios (2×2)
 """)
 
-code(r"""print("Generando mosaico comparativo 2x2...")
-import matplotlib.image as mpimg
+code(r"""print("Generando figura comparativa 2x2...")
 
-files = [
-    "comparativa_escenario1.png",
-    "comparativa_escenario2.png",
-    "comparativa_escenario3.png",
-    "comparativa_escenario4.png",
-]
-titles = [
-    "Escenario 1",
-    "Escenario 2",
-    "Escenario 3",
-    "Escenario 4",
-]
+def plot_panel(ax, t, x_nc, y_nc, x_ctrl, y_ctrl, xr, yr, titulo, sw=None, ds=None):
+    ax.plot(t, x_nc, 'b-', lw=0.5, alpha=0.45, label='$x$ s/ control')
+    ax.plot(t, y_nc, 'r-', lw=0.5, alpha=0.45, label='$y$ s/ control')
+    ax.plot(t, x_ctrl, 'b-', lw=1.1, label='$x$ con MPC')
+    ax.plot(t, y_ctrl, 'r-', lw=1.1, label='$y$ con MPC')
+    if np.ndim(xr) == 0:
+        ax.axhline(xr, color='b', ls='--', alpha=0.25)
+        ax.axhline(yr, color='r', ls='--', alpha=0.25)
+    else:
+        ax.plot(t, xr, 'b--', alpha=0.25, lw=0.6)
+        ax.plot(t, yr, 'r--', alpha=0.25, lw=0.6)
+    if sw is not None:
+        ax.axvline(sw*DT, color='gray', ls=':', alpha=0.35)
+    if ds is not None:
+        ax.axvline(ds*DT, color='orange', ls=':', alpha=0.35)
+    ax.set_xlabel('Tiempo')
+    ax.set_ylabel('Estado')
+    ax.set_title(titulo, fontsize=8, fontweight='bold')
+    ax.legend(fontsize=4.5, ncol=2, loc='upper right')
+    ax.grid(alpha=0.12)
 
-fig, axes = plt.subplots(2, 2, figsize=(12, 7))
-for i, (f, t) in enumerate(zip(files, titles)):
-    ax = axes[i // 2][i % 2]
-    img = mpimg.imread(f)
-    ax.imshow(img)
-    ax.axis("off")
-    ax.set_title(t, fontsize=10, fontweight="bold")
+fig, axes = plt.subplots(2, 2, figsize=(7.5, 5.5))
 
-plt.suptitle("Comparativa: sin control vs con MPC en los 4 escenarios",
-             fontsize=13, fontweight="bold")
+t1 = np.arange(N_STEPS + 1) * DT
+plot_panel(axes[0,0], t1, x_nc1, y_nc1, res1['x'], res1['y'],
+            xr1, yr1, 'Esc. 1: Ref. constante')
+
+t2 = np.arange(N_STEPS + 1) * DT
+plot_panel(axes[0,1], t2, x_nc2, y_nc2, x_traj2, y_traj2,
+            x_ref_seq2, y_ref_seq2, 'Esc. 2: Cambio escalon',
+            sw=switch)
+
+t3 = np.arange(N_STEPS + 1) * DT
+plot_panel(axes[1,0], t3, x_nc3, y_nc3, res3['x'], res3['y'],
+            35.0, 55.0, 'Esc. 3: Perturbacion',
+            ds=60)
+
+t4 = np.arange(N_STEPS4 + 1) * DT
+plot_panel(axes[1,1], t4, x_nc4, y_nc4, res4['x'], res4['y'],
+            35.0, 55.0, 'Esc. 4: Estocastico')
+
+plt.suptitle('Comparativa sin control vs con MPC por escenario',
+             fontsize=10, fontweight='bold', y=1.01)
 plt.tight_layout()
-plt.savefig("fig_comparativa_4escenarios.png", dpi=200, bbox_inches="tight")
+plt.savefig('fig_comparativa_4escenarios.png', dpi=200, bbox_inches='tight')
 plt.show()
 plt.close()
 print("  fig_comparativa_4escenarios.png generado")
