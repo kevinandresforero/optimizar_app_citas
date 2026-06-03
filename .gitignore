@@ -13,7 +13,11 @@ __pycache__/
 *.fdb_latexmk
 *.synctex.gz
 
-*.png
-
 *.pdf
-!presentacion.pdf
+!reporte_tecnico.pdf
+!Proyecto_parte_3__ciber_3_2026_1.pdf
+
+*.png
+!reporte_figura.png
+!comparativa_escenario1-4.png
+!mpc_escenario1.png
