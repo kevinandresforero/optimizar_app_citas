@@ -1,78 +1,31 @@
-# Dating App Optimization — Predator-Prey Model (Lotka-Volterra)
+# MPC para control de matching en app de citas
 
-Nonlinear optimization of a dating app using the Lotka-Volterra model with 3 optimizers. Balances algorithm efficiency, user retention, and profile growth to maximize profitability while maintaining a stable equilibrium.
+Control Predictivo Basado en Modelo (MPC) para regular la tasa de
+emparejamiento de una aplicación de citas, modelada con ecuaciones
+de Lotka-Volterra.
 
-## Main files
+## Archivos
 
-| File | Description |
-|------|-------------|
-| `optimizar_app_citas.py` | `DatingAppOptimizer` class (DE + L-BFGS-B) |
-| `optimizadores.py` | 3 optimizers: DE, SGD, ANFIS with unified interface |
-| `comparacion_escenarios.ipynb` | Notebook: 4 app stages (new, growing, established, massive) |
-| `comparativa_3_optimizadores.ipynb` | Notebook: 3-optimizer comparison |
-| `presentacion.tex` | Beamer presentation (29 slides, 16:9) |
+| Archivo | Descripción |
+|---------|-------------|
+| `mpc_controlador.py` | Controlador MPC + simulación + gráficas |
+| `generar_notebook_completo.py` | Genera el notebook `proyecto_mpc_completo.ipynb` |
+| `proyecto_mpc_completo.ipynb` | Notebook completo (sin ejecutar) |
+| `proyecto_mpc_completo_ejecutado.ipynb` | Notebook con resultados |
+| `reporte_tecnico.tex` | Fuente LaTeX del informe |
+| `reporte_tecnico.pdf` | Informe compilado |
+| `guion_video.md` | Guion para video de sustentación |
+| `requirements.txt` | Dependencias |
 
-## System equations
-
-```
-ẋ = a·x − b·x·y    (profiles / potential matches)
-ẏ = c·x·y − d·y    (active users)
-```
-
-**Equilibrium point:** `x* = d/c`, `y* = a/b`
-
-**Model parameters:**
-
-| Parameter | Name | Meaning |
-|-----------|------|---------|
-| `a` | alpha (α) | Profile growth rate (new registrations) |
-| `b` | beta (β) | Match rate (user interaction) |
-| `c` | delta (δ) | Algorithm matching efficiency |
-| `d` | gamma (γ) | User abandonment rate (churn) |
-
-## Optimizers
-
-### 1. Differential Evolution + L-BFGS-B (`DifferentialEvolutionOptimizer`)
-- Global evolutionary search with population of 50, 1500 generations
-- Local refinement with L-BFGS-B
-- **Cost:** –27.95 (best), **CV:** 0.103, **Revenue:** \$70.60/month
-
-### 2. SGD (`SGDOptimizer`)
-- Gradient approximated by finite differences with momentum (0.85)
-- Grid of >50 starting points + random restarts
-- **Cost:** –25.34, **CV:** 0.041 (most stable), **Revenue:** \$61.72/month
-
-### 3. ANFIS (`ANFISOptimizer`)
-- Fuzzification with 3 Gaussian membership functions per parameter
-- Feedforward neural network (12→16→4)
-- **Cost:** –12.11, **Retention:** 76.4% (best), **Time:** 0.5s (fastest)
-
-## Comparison metrics
-
-| Metric | Measures | Optimal direction |
-|--------|----------|-----------------|
-| Cost (J) | Multi-objective objective function | More negative |
-| CV | Coefficient of variation (stability) | Lower (<0.3) |
-| Retention | `e^{-d}` (users who don't churn) | Higher |
-| Revenue | Estimated income in \$/month | Higher |
-| Time | Execution time in seconds | Lower |
-
-## Setup and usage
+## Uso
 
 ```bash
 pip install -r requirements.txt
 
-# DatingAppOptimizer class
-python optimizar_app_citas.py
+# Generar y ejecutar notebook
+python generar_notebook_completo.py
+jupyter nbconvert --to notebook --execute proyecto_mpc_completo.ipynb
 
-# Notebooks
-jupyter notebook comparacion_escenarios.ipynb
-jupyter notebook comparativa_3_optimizadores.ipynb
-
-# Compile presentation
-pdflatex presentacion.tex
+# Compilar informe
+pdflatex reporte_tecnico.tex
 ```
-
-## Stack
-
-Python, NumPy, SciPy, Matplotlib, LaTeX (Beamer).
