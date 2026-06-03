@@ -137,6 +137,10 @@ con $\mathbf{x}=[x,y]^T$, $\mathbf{u}=[a,c,d]^T$,
 $a_{\text{ref}}=b\,y_{\text{ref}}$,
 $d_{\text{ref}}=c_{\text{ref}}\,x_{\text{ref}}$ ($c_{\text{ref}}=0.0179$).
 
+% ======================================================================
+\section{Resultados sobre la planta estoc\'astica}
+% ======================================================================
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.82\linewidth]{fig_mpc_estructura.png}
@@ -147,15 +151,11 @@ $d_{\text{ref}}=c_{\text{ref}}\,x_{\text{ref}}$ ($c_{\text{ref}}=0.0179$).
   \label{fig:mpc}
 \end{figure}
 
-La Fig.~\ref{fig:mpc} muestra el comportamiento del MPC. En (a) se
-observa la convergencia suave de ambos estados a la referencia en
-$\sim$20~pasos. En (b), el plano de fase conecta el inicio con la
-referencia. En (c), $a\to a_{\text{ref}}=0.30$, $d\to d_{\text{ref}}
-=0.63$, $c\to0.0179$; ninguna viola las cotas (punteadas).
-
-% ======================================================================
-\section{Resultados sobre la planta estoc\'astica}
-% ======================================================================
+La Fig.~\ref{fig:mpc} muestra el comportamiento del MPC sobre el
+sistema determinista. En (a) se observa la convergencia suave a la
+referencia en $\sim$20~pasos. En (b), el plano de fase conecta el
+inicio con la referencia. En (c), $a\to a_{\text{ref}}=0.30$,
+$d\to d_{\text{ref}}=0.63$, $c\to0.0179$; sin violar cotas.
 
 \begin{figure}[t]
   \centering
